@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use godot::classes::{CharacterBody3D, ProjectSettings};
+use godot::classes::{AnimationPlayer, CharacterBody3D, ProjectSettings};
 use godot::prelude::*;
 
 use crate::actions::Actions;
@@ -31,6 +31,9 @@ struct Movement {
     #[export]
     debug_ball: Option<Gd<Node3D>>,
 
+    #[export]
+    animations: Option<Gd<AnimationPlayer>>,
+
     #[export(range=(0.01, 400.0))]
     movement_speed: f32,
 
@@ -59,11 +62,15 @@ struct Movement {
 fn rotate_target_art(target_mesh: &mut Gd<Node3D>, instant_velocity: Vector3, _pivot: &Gd<Node3D>) {
     // NOTE: Try 1
     // let pivot_y = pivot.get_global_rotation().y;
-    let current_basis = target_mesh.get_basis();
-    // let look_at = Vector3::new(0., 0., instant_velocity.z);
-    let target_basis = Basis::looking_at(instant_velocity, Vector3::UP, true);
-    let interpolated = current_basis.slerp(&target_basis, 0.2);
-    target_mesh.set_basis(interpolated);
+
+    // Only rotate the model if there is movement
+    if instant_velocity != Vector3::ZERO {
+        let current_basis = target_mesh.get_basis();
+        // let look_at = Vector3::new(0., 0., instant_velocity.z);
+        let target_basis = Basis::looking_at(instant_velocity, Vector3::UP, true);
+        let interpolated = current_basis.slerp(&target_basis, 0.2);
+        target_mesh.set_basis(interpolated);
+    }
 
     // NOTE: Try 2
     // let mut look_vector = -pivot.get_basis().col_c();
@@ -162,6 +169,19 @@ impl Movement {
             self.jump_position = node.get_transform().origin.y;
         }
     }
+
+    fn apply_animations(&mut self) {
+        let Some(target_node) = &mut self.target_node else {
+            return;
+        };
+
+        let mut animation_player = target_node.get_node_as::<AnimationPlayer>("AnimationPlayer");
+        if self.instant_velocity != Vector3::ZERO {
+            animation_player.play_ex().name("mixamo_com").done();
+        } else {
+            animation_player.stop();
+        }
+    }
 }
 
 #[godot_api]
@@ -178,6 +198,7 @@ impl INode3D for Movement {
 
         self.apply_ground_movement(&input, delta);
         self.apply_jump(&input, node, delta);
+        self.apply_animations();
 
         node.set_velocity(self.instant_velocity);
         node.move_and_slide();

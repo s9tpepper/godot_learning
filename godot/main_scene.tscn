@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=3 uid="uid://3i5v55pgespf"]
 
+[ext_resource type="PackedScene" uid="uid://krf5olk44ixk" path="res://walking_character.tscn" id="1_2c62f"]
 [ext_resource type="Texture2D" uid="uid://br2bprrpwgtfi" path="res://8ea0411ea49fb4f1de834744416d15d3e0810a4f.jpeg" id="2_2c62f"]
-[ext_resource type="PackedScene" uid="uid://krf5olk44ixk" path="res://walking_character.tscn" id="2_gyfs4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2c62f"]
 radius = 0.341212
@@ -34,17 +34,15 @@ physics_interpolation_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88364, 0)
 shape = SubResource("CapsuleShape3D_2c62f")
 
-[node name="Player" parent="Player3D" instance=ExtResource("2_gyfs4")]
-
 [node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball")]
 pivot = NodePath("../Camera Pivot")
 target = NodePath("..")
 target_node = NodePath("../Player")
 debug_ball = NodePath("../Debug Ball")
 movement_speed = 3.0
-jump_height = 3.0
-fall_speed = 70.0
-jump_force = 60.0
+jump_height = 5.0
+fall_speed = 140.0
+jump_force = 90.0
 
 [node name="Debug Ball" type="CSGMesh3D" parent="Player3D"]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.310443, 0.28209)
@@ -63,6 +61,8 @@ rotation_speed = Vector2(0.005, 0.005)
 min_x_angle = -1.0
 max_x_angle = 1.0
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.0113211, -1.33767, -0.00884473)
+
+[node name="Player" parent="Player3D" instance=ExtResource("1_2c62f")]
 
 [node name="Floor" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5073, -0.516915, 8.82065)

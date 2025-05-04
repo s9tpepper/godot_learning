@@ -53,6 +53,3 @@ bones/62/rotation = Quaternion(1.03398e-25, -1.21072e-08, 1, 1.22465e-16)
 bones/63/rotation = Quaternion(0, 1, 3.72529e-09, -4.65289e-25)
 bones/64/rotation = Quaternion(-2.1721e-11, 0.707107, -0.707107, -5.75817e-10)
 bones/65/rotation = Quaternion(-4.93908e-10, 1, 2.98023e-08, 1.64636e-10)
-
-[node name="AnimationPlayer" parent="." index="1"]
-autoplay = "mixamo_com"
