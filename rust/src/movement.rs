@@ -1,9 +1,7 @@
-use std::str::FromStr;
 use std::sync::LazyLock;
 
 use godot::classes::{AnimationPlayer, CharacterBody3D, ProjectSettings};
 use godot::prelude::*;
-use godot::register::property;
 
 use crate::actions::Actions;
 
@@ -63,28 +61,6 @@ struct Movement {
     // to starting a jump while standing on a box or obstacle.
     target_jump_height: f32,
 }
-
-// impl Default for Movement {
-//     fn default() -> Self {
-//         Self {
-//             instant_velocity: Default::default(),
-//             base: Default::default(),
-//             pivot: Default::default(),
-//             target: Default::default(),
-//             target_node: Default::default(),
-//             debug_ball: Default::default(),
-//             animation_player_path: Default::default(),
-//             walking_animation_name: Default::default(),
-//             movement_speed: Default::default(),
-//             jump_height: Default::default(),
-//             fall_speed: Default::default(),
-//             jump_force: Default::default(),
-//             jumping: Default::default(),
-//             jump_position: Default::default(),
-//             target_jump_height: Default::default(),
-//         }
-//     }
-// }
 
 fn rotate_target_art(target_mesh: &mut Gd<Node3D>, instant_velocity: Vector3, _pivot: &Gd<Node3D>) {
     // NOTE: Try 1
@@ -208,9 +184,9 @@ impl Movement {
             return;
         }
 
-        // if self.walking_animation_name.is_empty() {
-        //     return;
-        // }
+        if self.walking_animation_name.is_empty() {
+            return;
+        }
 
         let mut animation_player = target_node.get_node_as::<AnimationPlayer>(&node_path);
         if self.instant_velocity != Vector3::ZERO {
