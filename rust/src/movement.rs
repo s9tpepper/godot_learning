@@ -1,7 +1,9 @@
+use std::str::FromStr;
 use std::sync::LazyLock;
 
 use godot::classes::{AnimationPlayer, CharacterBody3D, ProjectSettings};
 use godot::prelude::*;
+use godot::register::property;
 
 use crate::actions::Actions;
 
@@ -32,7 +34,10 @@ struct Movement {
     debug_ball: Option<Gd<Node3D>>,
 
     #[export]
-    animations: Option<Gd<AnimationPlayer>>,
+    animation_player_path: StringName,
+
+    #[export]
+    walking_animation_name: StringName,
 
     #[export(range=(0.01, 400.0))]
     movement_speed: f32,
@@ -58,6 +63,28 @@ struct Movement {
     // to starting a jump while standing on a box or obstacle.
     target_jump_height: f32,
 }
+
+// impl Default for Movement {
+//     fn default() -> Self {
+//         Self {
+//             instant_velocity: Default::default(),
+//             base: Default::default(),
+//             pivot: Default::default(),
+//             target: Default::default(),
+//             target_node: Default::default(),
+//             debug_ball: Default::default(),
+//             animation_player_path: Default::default(),
+//             walking_animation_name: Default::default(),
+//             movement_speed: Default::default(),
+//             jump_height: Default::default(),
+//             fall_speed: Default::default(),
+//             jump_force: Default::default(),
+//             jumping: Default::default(),
+//             jump_position: Default::default(),
+//             target_jump_height: Default::default(),
+//         }
+//     }
+// }
 
 fn rotate_target_art(target_mesh: &mut Gd<Node3D>, instant_velocity: Vector3, _pivot: &Gd<Node3D>) {
     // NOTE: Try 1
@@ -175,9 +202,22 @@ impl Movement {
             return;
         };
 
-        let mut animation_player = target_node.get_node_as::<AnimationPlayer>("AnimationPlayer");
+        // TODO: Figure out how to get rid of this clone()
+        let node_path: NodePath = self.animation_player_path.clone().into();
+        if !target_node.has_node(&node_path) {
+            return;
+        }
+
+        // if self.walking_animation_name.is_empty() {
+        //     return;
+        // }
+
+        let mut animation_player = target_node.get_node_as::<AnimationPlayer>(&node_path);
         if self.instant_velocity != Vector3::ZERO {
-            animation_player.play_ex().name("mixamo_com").done();
+            animation_player
+                .play_ex()
+                .name(&self.walking_animation_name)
+                .done();
         } else {
             animation_player.stop();
         }
