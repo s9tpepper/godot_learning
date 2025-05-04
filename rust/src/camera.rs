@@ -38,23 +38,20 @@ impl INode3D for Camera {
 
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
-        // #[allow(clippy::single_match)]
-        // match event.try_cast::<InputEventMouse>() {
-        //     Ok(event) => {
-        //     }
-        //     _ => {}
-        // }
-
         let mut input = Input::singleton();
         input.set_mouse_mode(MouseMode::CAPTURED);
+        let Some(pivot) = &mut self.pivot else {
+            return;
+        };
+
+        // let Some(player) = &mut self.player else {
+        //     return;
+        // };
+        // pivot.set_position(player.get_position());
 
         #[allow(clippy::single_match)]
         match event.try_cast::<InputEventMouseMotion>() {
             Ok(event) => {
-                let Some(pivot) = &mut self.pivot else {
-                    return;
-                };
-
                 let relative = event.get_relative();
                 self.accumulated_rotation += relative * self.rotation_speed;
 
@@ -73,6 +70,10 @@ impl INode3D for Camera {
 
                 pivot.rotate_object_local(Vector3::UP, y);
                 pivot.rotate_object_local(Vector3::RIGHT, x);
+
+                // NOTE: ??? Not working as expected
+                // pivot.set_position(player.get_position());
+                // pivot.set_global_position(player.get_global_position());
             }
 
             _ => {}

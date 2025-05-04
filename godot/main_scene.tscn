@@ -1,14 +1,23 @@
-[gd_scene load_steps=6 format=3 uid="uid://3i5v55pgespf"]
+[gd_scene load_steps=10 format=3 uid="uid://3i5v55pgespf"]
 
+[ext_resource type="Texture2D" uid="uid://br2bprrpwgtfi" path="res://8ea0411ea49fb4f1de834744416d15d3e0810a4f.jpeg" id="2_2c62f"]
 [ext_resource type="PackedScene" uid="uid://krf5olk44ixk" path="res://walking_character.tscn" id="2_gyfs4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2c62f"]
 radius = 0.341212
 height = 1.7677
 
+[sub_resource type="SphereMesh" id="SphereMesh_2c62f"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2c62f"]
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gyfs4"]
+albedo_texture = ExtResource("2_2c62f")
+
 [sub_resource type="BoxMesh" id="BoxMesh_0f027"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_2c62f"]
+[sub_resource type="SphereMesh" id="SphereMesh_0f027"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0f027"]
 
@@ -26,38 +35,47 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88364, 0)
 shape = SubResource("CapsuleShape3D_2c62f")
 
 [node name="Player" parent="Player3D" instance=ExtResource("2_gyfs4")]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
 
-[node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("target")]
+[node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball")]
+pivot = NodePath("../Camera Pivot")
 target = NodePath("..")
+target_node = NodePath("../Player")
+debug_ball = NodePath("../Debug Ball")
 movement_speed = 3.0
 jump_height = 3.0
 fall_speed = 70.0
 jump_force = 60.0
 
+[node name="Debug Ball" type="CSGMesh3D" parent="Player3D"]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.310443, 0.28209)
+mesh = SubResource("SphereMesh_2c62f")
+material = SubResource("StandardMaterial3D_2c62f")
+
 [node name="Camera Pivot" type="Node3D" parent="Player3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0113211, 1.33767, -0.00884473)
+transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0.0113211, 1.33767, -0.00884473)
 
 [node name="Camera3D" type="Camera3D" parent="Player3D/Camera Pivot"]
-transform = Transform3D(0.999986, 0.00428579, -0.00309115, -0.00150427, 0.791651, 0.610972, 0.00506561, -0.610958, 0.791646, -0.00895286, 1.15766, 2.00667)
+transform = Transform3D(0.999986, 0.00428579, -0.00309115, -0.00150427, 0.791651, 0.610971, 0.00506561, -0.610958, 0.791647, -0.00895268, 2.52475, 4.11727)
 
-[node name="Camera" type="Camera" parent="Player3D" node_paths=PackedStringArray("pivot")]
-pivot = NodePath("../Camera Pivot")
-rotation_speed = Vector2(0.04, 0.04)
+[node name="Camera" type="Camera" parent="Player3D/Camera Pivot" node_paths=PackedStringArray("pivot")]
+pivot = NodePath("..")
+rotation_speed = Vector2(0.005, 0.005)
 min_x_angle = -1.0
 max_x_angle = 1.0
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.0113211, -1.33767, -0.00884473)
 
 [node name="Floor" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5334, -0.95492, 8.15461)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5073, -0.516915, 8.82065)
+material_override = SubResource("StandardMaterial3D_gyfs4")
 use_collision = true
-size = Vector3(100, 1, 100)
+size = Vector3(1000, 1, 1000)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.89866, 0.117584, 3.15935)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.692305, 0.117584, 16.6714)
 mesh = SubResource("BoxMesh_0f027")
 
 [node name="CSGMesh3D" type="CSGMesh3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.19318, 0.224388, -3.00545)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.02652, 0.178212, -0.66872)
 use_collision = true
-mesh = SubResource("BoxMesh_2c62f")
+mesh = SubResource("SphereMesh_0f027")
 material = SubResource("StandardMaterial3D_0f027")

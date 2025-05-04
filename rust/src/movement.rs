@@ -16,11 +16,20 @@ static ACTIONS: LazyLock<Actions> = LazyLock::new(Actions::default);
 #[class(base=Node3D, init)]
 #[allow(unused)]
 struct Movement {
-    current_velocity: Vector3,
+    instant_velocity: Vector3,
     base: Base<Node3D>,
 
     #[export]
+    pivot: Option<Gd<Node3D>>,
+
+    #[export]
     target: Option<Gd<CharacterBody3D>>,
+
+    #[export]
+    target_node: Option<Gd<Node3D>>,
+
+    #[export]
+    debug_ball: Option<Gd<Node3D>>,
 
     #[export(range=(0.01, 400.0))]
     movement_speed: f32,
@@ -47,22 +56,80 @@ struct Movement {
     target_jump_height: f32,
 }
 
+fn rotate_target_art(target_mesh: &mut Gd<Node3D>, instant_velocity: Vector3, _pivot: &Gd<Node3D>) {
+    // NOTE: Try 1
+    // let pivot_y = pivot.get_global_rotation().y;
+    let current_basis = target_mesh.get_basis();
+    // let look_at = Vector3::new(0., 0., instant_velocity.z);
+    let target_basis = Basis::looking_at(instant_velocity, Vector3::UP, true);
+    let interpolated = current_basis.slerp(&target_basis, 0.2);
+    target_mesh.set_basis(interpolated);
+
+    // NOTE: Try 2
+    // let mut look_vector = -pivot.get_basis().col_c();
+    // look_vector.y = 0.;
+    // look_vector = look_vector.normalized();
+    // look_vector *= 50.;
+    // // let target = target_mesh.get_position() - Vector3::new(look_vector.x, 0., look_vector.z);
+    // let target = Vector3::new(look_vector.x, 0., look_vector.z);
+    // target_mesh.look_at(target);
+
+    // Reference to Codex's gdscript solution to model rotation
+    // func _process(_delta):
+    // 	if (camera_pivot):
+    // 		# Get the way the camera is looking on the basis matrix
+    // 		# Camera looks in -z
+    // 		var look_vec = -camera_pivot.basis.z
+    // 		# Ignore y-axis during normalizing calcs
+    // 		look_vec.y = 0
+    // 		# Normalize the vector so the `magnitudwwwwwe` is 1. This lets us keep
+    // 		# a consistent distance from the center origin later
+    // 		look_vec = look_vec.normalized()
+    // 		# Scale looking vector
+    // 		look_vec *= look_to_scale
+    //
+    // 		# Get the new target, which is based on our current position
+    // 		# and the looking vector offset
+    // 		var target = position - Vector3(look_vec.x, 0, look_vec.z)
+    //
+    // 		# Keep the original Y position of the bug as placed in scene
+    // 		debugger_ball.global_position = target
+    //
+    // 		look_at(target, Vector3.UP, true)
+}
+
 impl Movement {
-    fn apply_ground_movement(&mut self, input: &Gd<Input>) {
-        if input.is_action_pressed(ACTIONS.forward) {
-            self.current_velocity += Vector3::FORWARD;
-        }
+    fn apply_ground_movement(&mut self, input: &Gd<Input>, _delta: f64) {
+        let Some(pivot) = &self.get_pivot() else {
+            return;
+        };
 
-        if input.is_action_pressed(ACTIONS.left) {
-            self.current_velocity += Vector3::LEFT;
-        }
+        let pivot_y = pivot.get_global_rotation().y;
 
-        if input.is_action_pressed(ACTIONS.right) {
-            self.current_velocity += Vector3::RIGHT;
-        }
+        let movement_vector = input
+            .get_vector(
+                ACTIONS.left,
+                ACTIONS.right,
+                ACTIONS.forward,
+                ACTIONS.backward,
+            )
+            .rotated(-pivot_y);
 
-        if input.is_action_pressed(ACTIONS.backward) {
-            self.current_velocity += Vector3::BACK;
+        let Some(player) = &mut self.target else {
+            return;
+        };
+
+        self.instant_velocity =
+            Vector3::new(movement_vector.x, 0., movement_vector.y) * self.movement_speed;
+
+        player.set_velocity(self.instant_velocity);
+        player.move_and_slide();
+
+        let Some(pivot) = &self.get_pivot() else {
+            return;
+        };
+        if let Some(target_node) = &mut self.target_node {
+            rotate_target_art(target_node, self.instant_velocity, pivot);
         }
     }
 
@@ -74,26 +141,24 @@ impl Movement {
         let g = settings.get_setting(GRAVITY_SETTINGS_PATH);
         let gravity: f32 = g.try_to().unwrap_or(DEFAULT_GRAVITY);
 
-        if input.is_action_just_pressed(ACTIONS.jump) && node.is_on_floor() {
-            let jump_impulse = (gravity_vector * gravity * self.jump_force) * -1.;
+        let jump_impulse = (gravity_vector * gravity * self.jump_force) * -1.;
 
-            self.current_velocity.y = jump_impulse.y * delta as f32;
+        if input.is_action_just_pressed(ACTIONS.jump) && node.is_on_floor() {
+            self.instant_velocity.y = jump_impulse.y * delta as f32;
             self.jump_position = node.get_transform().origin.y;
             self.jumping = true;
             self.target_jump_height = self.jump_position + self.jump_height;
         } else if self.jumping && self.jump_position < self.target_jump_height {
-            let jump_impulse = (gravity_vector * gravity * self.jump_force) * -1.;
-
-            self.current_velocity.y = jump_impulse.y * delta as f32;
+            self.instant_velocity.y = jump_impulse.y * delta as f32;
             self.jump_position = node.get_transform().origin.y;
+        }
 
-            if self.jump_position >= self.target_jump_height {
-                self.jumping = false;
-            }
+        if self.jump_position >= self.target_jump_height {
+            self.jumping = false;
         }
 
         if !node.is_on_floor() && !self.jumping {
-            self.current_velocity.y -= self.fall_speed * gravity * delta as f32;
+            self.instant_velocity.y -= self.fall_speed * gravity * delta as f32;
             self.jump_position = node.get_transform().origin.y;
         }
     }
@@ -109,14 +174,12 @@ impl INode3D for Movement {
             return;
         };
 
-        self.current_velocity = Vector3::ZERO;
+        self.instant_velocity = Vector3::ZERO;
 
-        self.apply_ground_movement(&input);
-        self.current_velocity *= self.movement_speed;
-
+        self.apply_ground_movement(&input, delta);
         self.apply_jump(&input, node, delta);
 
-        node.set_velocity(self.current_velocity);
+        node.set_velocity(self.instant_velocity);
         node.move_and_slide();
     }
 }
