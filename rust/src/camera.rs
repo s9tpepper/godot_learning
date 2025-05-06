@@ -10,8 +10,7 @@ use godot::prelude::*;
 #[class(base=Node3D, init)]
 #[allow(unused)]
 struct Camera {
-    #[export]
-    pivot: Option<Gd<Node3D>>,
+    base: Base<Node3D>,
 
     // #[export(range=(0.01, 100.0))]
     // rotation_speed_x: f32,
@@ -33,29 +32,20 @@ struct Camera {
 
 #[godot_api]
 impl INode3D for Camera {
-    // Called every frame.
-    fn process(&mut self, _delta: f64) {}
-
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
-        let mut input = Input::singleton();
-        input.set_mouse_mode(MouseMode::CAPTURED);
-        let Some(pivot) = &mut self.pivot else {
-            return;
-        };
-
-        // let Some(player) = &mut self.player else {
-        //     return;
-        // };
-        // pivot.set_position(player.get_position());
+        // let mut input = Input::singleton();
+        // input.set_mouse_mode(MouseMode::CAPTURED);
 
         #[allow(clippy::single_match)]
         match event.try_cast::<InputEventMouseMotion>() {
             Ok(event) => {
                 let relative = event.get_relative();
+                godot_print!("relative: {relative}");
+
                 self.accumulated_rotation += relative * self.rotation_speed;
 
-                pivot.set_basis(Basis::default());
+                self.base_mut().set_basis(Basis::default());
 
                 // let y = self
                 //     .accumulated_rotation
@@ -68,12 +58,13 @@ impl INode3D for Camera {
                     .y
                     .clamp(self.min_x_angle, self.max_x_angle);
 
-                pivot.rotate_object_local(Vector3::UP, y);
-                pivot.rotate_object_local(Vector3::RIGHT, x);
+                godot_print!(
+                    "setting rotation: x: {x}, y: {y}, accumulated_rotation: {}",
+                    self.accumulated_rotation
+                );
 
-                // NOTE: ??? Not working as expected
-                // pivot.set_position(player.get_position());
-                // pivot.set_global_position(player.get_global_position());
+                self.base_mut().rotate_object_local(Vector3::UP, y);
+                self.base_mut().rotate_object_local(Vector3::RIGHT, x);
             }
 
             _ => {}
