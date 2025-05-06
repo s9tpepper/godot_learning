@@ -1,5 +1,5 @@
 use godot::{
-    classes::{INode3D, InputEvent, InputEventMouseMotion, Node3D, input::MouseMode},
+    classes::{INode3D, Input, InputEvent, InputEventMouseMotion, Node3D, input::MouseMode},
     obj::Gd,
     prelude::{GodotClass, godot_api},
 };

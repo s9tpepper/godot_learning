@@ -34,7 +34,7 @@ physics_interpolation_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88364, 0)
 shape = SubResource("CapsuleShape3D_2c62f")
 
-[node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball")]
+[node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball", "motion_signals")]
 pivot = NodePath("../Camera Pivot")
 target = NodePath("..")
 target_node = NodePath("../Player")
@@ -45,6 +45,7 @@ movement_speed = 3.0
 jump_height = 5.0
 fall_speed = 140.0
 jump_force = 90.0
+motion_signals = NodePath("../MotionSignals")
 
 [node name="Debug Ball" type="CSGMesh3D" parent="Player3D"]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.310443, 0.28209)
@@ -65,6 +66,14 @@ max_x_angle = 1.0
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.0113211, -1.33767, -0.00884473)
 
 [node name="Player" parent="Player3D" instance=ExtResource("1_2c62f")]
+
+[node name="MovementAnimations" type="MovementAnimations" parent="Player3D" node_paths=PackedStringArray("target_node", "motion_signals")]
+target_node = NodePath("../Player")
+animation_player_path = &"AnimationPlayer"
+walking_animation_name = &"mixamo_com"
+motion_signals = NodePath("../MotionSignals")
+
+[node name="MotionSignals" type="MotionSignals" parent="Player3D"]
 
 [node name="Floor" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5073, -0.516915, 8.82065)

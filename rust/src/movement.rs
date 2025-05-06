@@ -1,9 +1,10 @@
 use std::sync::LazyLock;
 
-use godot::classes::{AnimationPlayer, CharacterBody3D, ProjectSettings};
+use godot::classes::{AnimationPlayer, CharacterBody3D, Input, ProjectSettings};
 use godot::prelude::*;
 
 use crate::actions::Actions;
+use crate::motion_signals::MotionSignals;
 
 const DEFAULT_GRAVITY: f32 = 9.8;
 const DEFAULT_GRAVITY_VECTOR: Vector3 = Vector3::new(0., -1., 0.);
@@ -48,6 +49,9 @@ struct Movement {
 
     #[export(range=(1., 200.))]
     jump_force: f32,
+
+    #[export]
+    motion_signals: Option<Gd<MotionSignals>>,
 
     // Whether the player is currently jumping
     jumping: bool,
@@ -135,6 +139,16 @@ impl Movement {
         player.set_velocity(self.instant_velocity);
         player.move_and_slide();
 
+        if self.instant_velocity != Vector3::ZERO && self.motion_signals.is_some() {
+            if let Some(mut motion_signals) = self.get_motion_signals() {
+                motion_signals.signals().walking().emit(true);
+            }
+        } else if self.motion_signals.is_some() && self.instant_velocity == Vector3::ZERO {
+            if let Some(mut motion_signals) = self.get_motion_signals() {
+                motion_signals.signals().walking().emit(false);
+            }
+        }
+
         let Some(pivot) = &self.get_pivot() else {
             return;
         };
@@ -173,7 +187,7 @@ impl Movement {
         }
     }
 
-    fn apply_animations(&mut self) {
+    fn _apply_animations(&mut self) {
         let Some(target_node) = &mut self.target_node else {
             return;
         };
@@ -214,7 +228,7 @@ impl INode3D for Movement {
 
         self.apply_ground_movement(&input, delta);
         self.apply_jump(&input, node, delta);
-        self.apply_animations();
+        // self.apply_animations();
 
         node.set_velocity(self.instant_velocity);
         node.move_and_slide();
