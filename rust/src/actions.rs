@@ -4,6 +4,7 @@ pub struct Actions {
     pub left: &'static str,
     pub right: &'static str,
     pub jump: &'static str,
+    pub mouse_mode: &'static str,
 }
 
 impl Default for Actions {
@@ -14,7 +15,7 @@ impl Default for Actions {
             left: "move_left",
             right: "move_right",
             jump: "jump",
+            mouse_mode: "mouse_mode",
         }
     }
 }
-

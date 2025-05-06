@@ -34,7 +34,11 @@ struct Camera {
 impl INode3D for Camera {
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
-        // let mut input = Input::singleton();
+        let input = Input::singleton();
+        if input.get_mouse_mode() == MouseMode::CONFINED {
+            return;
+        }
+
         // input.set_mouse_mode(MouseMode::CAPTURED);
 
         #[allow(clippy::single_match)]
@@ -64,7 +68,7 @@ impl INode3D for Camera {
                 );
 
                 self.base_mut().rotate_object_local(Vector3::UP, y);
-                self.base_mut().rotate_object_local(Vector3::RIGHT, x);
+                self.base_mut().rotate_object_local(Vector3::LEFT, x);
             }
 
             _ => {}
