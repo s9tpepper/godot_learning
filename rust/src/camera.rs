@@ -45,7 +45,7 @@ impl INode3D for Camera {
         match event.try_cast::<InputEventMouseMotion>() {
             Ok(event) => {
                 let relative = event.get_relative();
-                godot_print!("relative: {relative}");
+                // godot_print!("relative: {relative}");
 
                 self.accumulated_rotation += relative * self.rotation_speed;
 
@@ -62,10 +62,10 @@ impl INode3D for Camera {
                     .y
                     .clamp(self.min_x_angle, self.max_x_angle);
 
-                godot_print!(
-                    "setting rotation: x: {x}, y: {y}, accumulated_rotation: {}",
-                    self.accumulated_rotation
-                );
+                // godot_print!(
+                //     "setting rotation: x: {x}, y: {y}, accumulated_rotation: {}",
+                //     self.accumulated_rotation
+                // );
 
                 self.base_mut().rotate_object_local(Vector3::UP, y);
                 self.base_mut().rotate_object_local(Vector3::LEFT, x);

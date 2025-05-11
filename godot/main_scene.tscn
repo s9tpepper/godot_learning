@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://3i5v55pgespf"]
+[gd_scene load_steps=11 format=3 uid="uid://3i5v55pgespf"]
 
 [ext_resource type="PackedScene" uid="uid://krf5olk44ixk" path="res://walking_character.tscn" id="1_2c62f"]
 
@@ -10,6 +10,8 @@ height = 1.7677
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2c62f"]
 albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gyfs4"]
 albedo_color = Color(0.406157, 0.132929, 0, 0.992157)
@@ -35,38 +37,26 @@ physics_interpolation_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88364, 0)
 shape = SubResource("CapsuleShape3D_2c62f")
 
-[node name="Movement" type="Movement" parent="Player3D" node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball", "motion_signals")]
-pivot = NodePath("../Pivot")
-target = NodePath("..")
-target_node = NodePath("../Player")
-debug_ball = NodePath("../Debug Ball")
-animation_player_path = &"AnimationPlayer"
-walking_animation_name = &"mixamo_com"
-movement_speed = 3.0
-jump_height = 5.0
-fall_speed = 140.0
-jump_force = 90.0
-motion_signals = NodePath("../MotionSignals")
+[node name="Movement" type="Movement" parent="Player3D"]
 
 [node name="Debug Ball" type="CSGMesh3D" parent="Player3D"]
-transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0.310443, 0.28209)
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -0.0713739, 0.266867, 1.44938)
 mesh = SubResource("SphereMesh_2c62f")
 material = SubResource("StandardMaterial3D_2c62f")
 
+[node name="Area3D" type="Area3D" parent="Player3D/Debug Ball"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player3D/Debug Ball/Area3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0396121, 0.0595267)
+shape = SubResource("BoxShape3D_0f027")
+
 [node name="Player" parent="Player3D" instance=ExtResource("1_2c62f")]
 
-[node name="MovementAnimations" type="MovementAnimations" parent="Player3D" node_paths=PackedStringArray("target_node", "motion_signals")]
-target_node = NodePath("../Player")
-animation_player_path = &"AnimationPlayer"
-walking_animation_name = &"mixamo_com"
-motion_signals = NodePath("../MotionSignals")
+[node name="MovementAnimations" type="MovementAnimations" parent="Player3D"]
 
 [node name="MotionSignals" type="MotionSignals" parent="Player3D"]
 
 [node name="Pivot" type="Camera" parent="Player3D"]
-rotation_speed = Vector2(0.005, 0.005)
-min_x_angle = -1.0
-max_x_angle = 0.5
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Player3D/Pivot"]
 transform = Transform3D(-1, 0, -8.74228e-08, 2.38652e-08, 0.962018, -0.272986, 8.41023e-08, -0.272986, -0.962018, 0, 2.15642, 0)
@@ -74,6 +64,11 @@ spring_length = 3.0
 
 [node name="Camera3D" type="Camera3D" parent="Player3D/Pivot/SpringArm3D"]
 transform = Transform3D(1, 5.31554e-08, 1.80164e-08, -5.31554e-08, 0.793916, 0.608027, 1.80164e-08, -0.608027, 0.793916, 0, 0, 0)
+
+[node name="SomeStateMachine" type="SomeStateMachine" parent="Player3D" node_paths=PackedStringArray("context")]
+context = NodePath("..")
+
+[node name="Idle" type="Idle" parent="Player3D/SomeStateMachine"]
 
 [node name="Floor" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.6386, -0.461648, 8.73781)
