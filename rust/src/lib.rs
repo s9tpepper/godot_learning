@@ -1,3 +1,5 @@
+use godot::init::gdextension;
+
 mod actions;
 mod camera;
 mod debug;

@@ -11,57 +11,24 @@ use std::{
 };
 
 use godot::{
-    builtin::{GString, Signal},
+    builtin::{GString, Signal, Variant},
     classes::{INode, INode3D, Node, Node3D, Object, RefCounted, class_macros::sys::Global},
     global::godot_print,
     meta::ToGodot,
-    obj::{Base, Bounds, DynGd, Gd, Inherits, NewAlloc, WithBaseField, WithUserSignals},
+    obj::{
+        Base, Bounds, DynGd, Gd, Inherits, NewAlloc, WithBaseField, WithUserSignals,
+        bounds::MemManual,
+    },
     prelude::{Array, Export, GodotClass, godot_api, godot_dyn},
 };
 
-use crate::states::{self, idle::Idle};
+use crate::states::{State, StateUpdates, idle::Idle};
 
 #[derive(Default)]
 pub enum StateMachineEvents {
     #[default]
     Noop,
-
     Switch(String),
-}
-
-pub trait State {
-    fn set_context(&mut self, node: Gd<Node3D>);
-    fn set_sender(&mut self, sender: Sender<StateMachineEvents>);
-    fn get_state_name(&self) -> String;
-}
-
-#[macro_export]
-macro_rules! impl_state {
-    ($t:ty) => {
-        impl $crate::finite_state_machine::State for $t {
-            fn set_context(&mut self, context: Gd<Node3D>) {
-                self.context = Some(context);
-                godot::global::godot_print!("State set context success");
-            }
-
-            fn set_sender(
-                &mut self,
-                sender: std::sync::mpsc::Sender<finite_state_machine::StateMachineEvents>,
-            ) {
-                self.sender = Some(sender);
-            }
-
-            fn get_state_name(&self) -> String {
-                stringify!($t).to_string()
-            }
-        }
-    };
-}
-
-pub trait StateUpdates {
-    fn enter(&self);
-    fn update(&self, delta: f32);
-    fn exit(&self);
 }
 
 #[derive(GodotClass)]
@@ -71,7 +38,7 @@ pub struct SomeStateMachine {
     context: Option<Gd<Node3D>>,
 
     base: Base<Node3D>,
-    states: HashMap<String, Gd<Node>>,
+    states: HashMap<String, SomeStates>,
     current_state: String,
 
     receiver: Option<Receiver<StateMachineEvents>>,
@@ -82,8 +49,34 @@ pub struct SomeStateMachine {
     current_state_node: Box<dyn StateUpdates>,
 }
 
+#[derive(Debug, Default)]
+pub enum SomeStates {
+    #[default]
+    Noop,
+
+    Idle(Gd<Idle>),
+}
+
+impl SomeStates {
+    pub fn as_state_mut(&mut self) -> &mut dyn StateUpdates {
+        match self {
+            SomeStates::Noop => panic!(),
+            SomeStates::Idle(gd) => gd,
+        }
+    }
+}
+
+impl Default for &mut SomeStates {
+    fn default() -> Self {
+        panic!("Yeet")
+    }
+}
+
 impl FiniteStateMachine for SomeStateMachine {
-    fn get_states(&mut self) -> &mut HashMap<String, Gd<Node>> {
+    type States = HashMap<String, SomeStates>;
+    type Context = Gd<Node3D>;
+
+    fn get_states(&mut self) -> &mut Self::States {
         &mut self.states
     }
 
@@ -91,91 +84,29 @@ impl FiniteStateMachine for SomeStateMachine {
         &self,
         mut context: Gd<Node3D>,
         sender: Sender<StateMachineEvents>,
-    ) -> HashMap<String, Gd<Node>> {
+    ) -> Self::States {
         godot_print!("[FiniteStateMachine::setup_states()]");
-        let mut states = HashMap::new();
 
-        self.base()
-            .get_children()
-            .iter_shared()
-            .for_each(|mut state| {
-                godot_print!("[FiniteStateMachine::setup_states() - Setting up state]");
-                godot_print!("[FiniteStateMachine::setup_states() - {state}]");
+        let mut states: Self::States = HashMap::new();
 
-                // NOTE: These 4 lines work to set the context
-                // let mut idle = state.clone().cast::<Idle>();
-                // godot_print!("got Idle");
-                // idle.bind_mut().set_context(context.clone());
-                // godot_print!("got Idle and set context");
+        let mut idle = Idle::new_alloc();
 
-                let tmp = &mut state as &mut dyn Any;
-                let Some(st) = tmp.downcast_mut::<Box<dyn State>>() else {
-                    godot_print!("Could not downcast to Box dyn State");
-                    return;
-                };
+        let sender = self
+            .sender
+            .clone()
+            .expect("A Sender<StateMachineEvents> must be created");
+        idle.bind_mut().set_sender(sender);
 
-                //let dyn_state = idle.into_dyn::<dyn State>();
-
-                // let variant = state.to_variant();
-                // godot_print!("Got variant");
-                //
-                // let mut dyn_state: DynGd<RefCounted, dyn State> = match variant.try_to() {
-                //     Ok(x) => x,
-                //     Err(err) => {
-                //         godot_print!("Error converting: {err}");
-                //         panic!("oops");
-                //     }
-                // };
-                //
-                // // let mut dyn_state: DynGd<RefCounted, dyn State> = variant.try_to();
-                // godot_print!("Got dyn_state");
-                //
-                // dyn_state.dyn_bind_mut().set_context(context.clone());
-                // godot_print!("Got set the context");
-
-                // let dyn_state = state.into_dyn::<dyn State>();
-
-                //let node = state.try_cast::<DynGd<Node, Idle>>();
-
-                // let mut node = &mut state as &mut dyn Any;
-                // let node = node.deref_mut();
-
-                // node.deref_mut()
-
-                // let Some(mut node) = node.downcast_mut::<Box<dyn State>>() else {
-                //     return;
-                // };
-
-                // <Gd<Idle> as State>::set_context(node, context.clone());
-
-                //node.base_mut().set_context(context.clone());
-
-                //
-                // let node = node.deref_mut();
-                //
-                // let tmp = node as &mut dyn Any;
-                // let Some(a_state) = tmp.downcast_mut::<Idle>() else {
-                //     godot_print!("Could not downcast to fucking State");
-                //     return;
-                // };
-                //
-                // a_state.set_context(context.clone());
-
-                // TODO: Figure out why this is not casting correctly to call the methods from
-                // State trait
-                // if let Ok(mut current_state) = state.clone().try_cast::<Idle>() {
-                //     current_state.bind_mut().set_context(context.clone());
-                //     current_state.bind_mut().set_sender(sender.clone());
-                //
-                //     states.insert(current_state.bind().get_state_name(), state);
-                // } else {
-                //     godot_print!(
-                //         "[FiniteStateMachine::setup_states() - Error downcasting to dyn State]"
-                //     );
-                // }
-            });
+        states.insert("Idle".to_string(), SomeStates::Idle(idle));
 
         states
+    }
+
+    fn get_state(&mut self, state: &str) -> &mut dyn StateUpdates {
+        let states = self.get_states();
+
+        let state = states.get_mut(state).unwrap_or_default();
+        state.as_state_mut()
     }
 }
 
@@ -199,12 +130,13 @@ impl INode3D for SomeStateMachine {
             return;
         };
 
+        godot_print!("[SomeStateMachine::ready()] - Started channel.");
+
         let (sender, receiver) = mpsc::channel::<StateMachineEvents>();
         self.sender = Some(sender.clone());
         self.receiver = Some(receiver);
-        godot_print!("[SomeStateMachine::ready()] - Started channel.");
-
         self.states = self.setup_states(context.clone(), sender);
+
         godot_print!("[SomeStateMachine::ready()] - Set up states.");
         godot_print!("states: {:?}", self.states);
 
@@ -213,32 +145,38 @@ impl INode3D for SomeStateMachine {
     }
 
     fn process(&mut self, _delta: f64) {
-        let Some(receiver) = &self.receiver else {
-            return;
-        };
+        // let Some(receiver) = &self.receiver else {
+        //     return;
+        // };
+        //
+        // let Ok(message) = receiver.try_recv() else {
+        //     return;
+        // };
 
-        let Ok(message) = receiver.try_recv() else {
-            return;
-        };
-
-        #[allow(clippy::single_match)]
-        match message {
-            StateMachineEvents::Switch(new_state) => {
-                self.switch(&new_state);
-            }
-
-            _ => {}
-        }
+        // TODO: Change this to not use mpsc::Sender
+        // #[allow(clippy::single_match)]
+        // match message {
+        //     StateMachineEvents::Switch(new_state) => {
+        //         self.switch(&new_state);
+        //     }
+        //
+        //     _ => {}
+        // }
     }
 }
 
-pub trait FiniteStateMachine: INode3D + WithBaseField + Inherits<Node> {
-    fn get_states(&mut self) -> &mut HashMap<String, Gd<Node>>;
+pub trait FiniteStateMachine {
+    type States: Default;
+    type Context;
+
+    fn get_states(&mut self) -> &mut Self::States;
     fn setup_states(
         &self,
-        context: Gd<Node3D>,
+        context: Self::Context,
         sender: Sender<StateMachineEvents>,
-    ) -> HashMap<String, Gd<Node>>;
+    ) -> Self::States;
+    // fn get_state(&mut self, state: &str) -> &mut impl StateUpdates;
+    fn get_state(&mut self, state: &str) -> &mut dyn StateUpdates;
 
     fn switch(&mut self, state: &str) {
         godot_print!("[FiniteStateMachine::switch()]");
@@ -248,42 +186,6 @@ pub trait FiniteStateMachine: INode3D + WithBaseField + Inherits<Node> {
 
         to_state.enter();
         godot_print!("[FiniteStateMachine::switch() - Triggered enter() on state]");
-    }
-
-    fn get_state(&mut self, state: &str) -> &mut Box<dyn StateUpdates> {
-        let states = self.get_states();
-        let Some(node) = states.get_mut(state) else {
-            godot_print!("The state {state} is missing.");
-
-            panic!("The state {state} is missing.");
-        };
-
-        let tmp = node as &mut dyn Any;
-        let current_state = tmp
-            .downcast_mut::<Box<dyn StateUpdates>>()
-            .expect("State must implement StateUpdates");
-
-        current_state
-    }
-}
-
-impl Default for Box<dyn StateUpdates> {
-    fn default() -> Self {
-        Box::new(())
-    }
-}
-
-impl StateUpdates for () {
-    fn enter(&self) {
-        todo!()
-    }
-
-    fn update(&self, delta: f32) {
-        todo!()
-    }
-
-    fn exit(&self) {
-        todo!()
     }
 }
 
