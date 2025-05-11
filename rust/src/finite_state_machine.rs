@@ -22,7 +22,7 @@ use godot::{
     prelude::{Array, Export, GodotClass, godot_api, godot_dyn},
 };
 
-use crate::states::{State, StateUpdates, idle::Idle};
+use crate::states::{State, StateUpdates, idle::Idle, walking::Walking};
 
 #[derive(Default)]
 pub enum StateMachineEvents {
@@ -55,6 +55,7 @@ pub enum SomeStates {
     Noop,
 
     Idle(Gd<Idle>),
+    Walking(Gd<Walking>),
 }
 
 impl SomeStates {
@@ -62,6 +63,7 @@ impl SomeStates {
         match self {
             SomeStates::Noop => panic!(),
             SomeStates::Idle(gd) => gd,
+            SomeStates::Walking(gd) => gd,
         }
     }
 }
@@ -89,15 +91,21 @@ impl FiniteStateMachine for SomeStateMachine {
 
         let mut states: Self::States = HashMap::new();
 
-        let mut idle = Idle::new_alloc();
-
         let sender = self
             .sender
             .clone()
             .expect("A Sender<StateMachineEvents> must be created");
-        idle.bind_mut().set_sender(sender);
 
+        // TODO: Make this macro to facilitate registering states
+        // register_states!(Idle, Walking, sender);
+
+        let mut idle = Idle::new_alloc();
+        idle.bind_mut().set_sender(sender.clone());
         states.insert("Idle".to_string(), SomeStates::Idle(idle));
+
+        let mut walking = Walking::new_alloc();
+        walking.bind_mut().set_sender(sender.clone());
+        states.insert("Walking".to_string(), SomeStates::Walking(walking));
 
         states
     }
