@@ -30,7 +30,7 @@ physics_interpolation_mode = 1
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.862697, -0.374264, -0.340117, 0.505451, 0.616147, 0.604055, -0.0165137, -0.693029, 0.720721, 7.46761, 6.0036, 7.26263)
 
-[node name="Player3D" type="CharacterBody3D" parent="."]
+[node name="Player3D" type="Player3D" parent="."]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player3D"]
 physics_interpolation_mode = 1
@@ -82,9 +82,6 @@ spring_length = 3.0
 
 [node name="Camera3D" type="Camera3D" parent="Player3D/Pivot/SpringArm3D"]
 transform = Transform3D(1, 5.31554e-08, 1.80164e-08, -5.31554e-08, 0.793916, 0.608027, 1.80164e-08, -0.608027, 0.793916, 0, 0, 0)
-
-[node name="SomeStateMachine" type="SomeStateMachine" parent="Player3D" node_paths=PackedStringArray("context")]
-context = NodePath("..")
 
 [node name="Floor" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.6386, -0.461648, 8.73781)

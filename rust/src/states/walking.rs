@@ -1,5 +1,3 @@
-use std::sync::mpsc::Sender;
-
 use godot::{
     classes::{INode, Node, Node3D},
     global::godot_print,
@@ -7,7 +5,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
-use crate::{finite_state_machine::StateMachineEvents, impl_state};
+use crate::impl_state;
 
 use super::StateUpdates;
 
@@ -18,7 +16,7 @@ pub struct Walking {
     base: Base<Node>,
 
     context: Option<Gd<Node3D>>,
-    sender: Option<Sender<StateMachineEvents>>,
+    // state_machine:
 }
 
 #[godot_api]

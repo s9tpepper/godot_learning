@@ -1,29 +1,22 @@
-use std::sync::mpsc::Sender;
-
-use godot::{classes::Node3D, obj::Gd};
-
-use crate::finite_state_machine::StateMachineEvents;
-
 pub mod idle;
 pub mod walking;
 
 pub trait State {
-    fn set_sender(&mut self, sender: Sender<StateMachineEvents>);
+    // fn set_sender(&mut self, sender: Sender<StateMachineEvents>);
     fn get_state_name(&self) -> String;
-    fn set_context(&mut self, context: Gd<Node3D>);
 }
 
 #[macro_export]
 macro_rules! impl_state {
     ($t:ty) => {
         impl $crate::states::State for $t {
-            fn set_sender(&mut self, sender: Sender<StateMachineEvents>) {
-                self.sender = Some(sender);
-            }
+            // fn set_sender(&mut self, sender: Sender<StateMachineEvents>) {
+            //     self.sender = Some(sender);
+            // }
 
-            fn set_context(&mut self, context: Gd<Node3D>) {
-                self.context = Some(context);
-            }
+            // fn set_context(&mut self, context: Gd<Node3D>) {
+            //     self.context = context;
+            // }
 
             fn get_state_name(&self) -> String {
                 stringify!($t).to_string()

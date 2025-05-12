@@ -1,35 +1,25 @@
-use std::sync::mpsc::Sender;
+use std::{rc::Rc, sync::Mutex};
 
-use godot::{
-    classes::{INode, Node, Node3D},
-    global::godot_print,
-    obj::{Base, Gd},
-    prelude::{GodotClass, godot_api},
-};
+use godot::{global::godot_print, obj::Gd};
 
-use crate::{finite_state_machine::StateMachineEvents, impl_state};
+use crate::{impl_state, player::Player3D};
 
 use super::StateUpdates;
 
-#[derive(GodotClass)]
-#[class(base=Node, init)]
-pub struct Idle {
-    #[base]
-    base: Base<Node>,
-
-    context: Option<Gd<Node3D>>,
-    sender: Option<Sender<StateMachineEvents>>,
+#[derive(Debug)]
+pub struct Idle<T> {
+    context: T,
 }
 
-#[godot_api]
-impl INode for Idle {
-    fn ready(&mut self) {}
-    fn physics_process(&mut self, _delta: f64) {}
+impl<T> Idle<T> {
+    pub fn new(context: T) -> Self {
+        Idle { context }
+    }
 }
 
-impl_state!(Idle);
+impl_state!(Idle<Gd<Player3D>>);
 
-impl StateUpdates for Gd<Idle> {
+impl<T> StateUpdates for Rc<Mutex<Idle<T>>> {
     fn enter(&self) {
         godot_print!("Implement the enter logic for Idle state")
     }
