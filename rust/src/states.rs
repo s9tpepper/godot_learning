@@ -8,10 +8,9 @@ pub trait State {
     type States: Default;
     type Context;
 
-    // fn set_sender(&mut self, sender: Sender<StateMachineEvents>);
     fn get_state_name(&self) -> String;
+    fn state_name() -> String;
 
-    // TODO: add reference to FSM here via a generic in Idle using Fsm/FsmHelper
     fn set_state_machine(
         &mut self,
         state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>,
@@ -26,11 +25,18 @@ macro_rules! impl_state {
             type States = $s;
             type Context = $c;
 
-            fn set_state_machine(&mut self, state_machine: Fsm) {
+            fn set_state_machine(
+                &mut self,
+                state_machine: $crate::player::FsmHelper<Self::Enum, Self::States, Self::Context>,
+            ) {
                 self.state_machine = Some(state_machine);
             }
 
             fn get_state_name(&self) -> String {
+                stringify!($t).to_string()
+            }
+
+            fn state_name() -> String {
                 stringify!($t).to_string()
             }
         }

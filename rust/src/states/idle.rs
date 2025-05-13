@@ -12,7 +12,9 @@ use super::StateUpdates;
 
 #[derive(Debug)]
 pub struct Idle<T> {
+    #[allow(unused)]
     context: T,
+
     state_machine: Option<Fsm>,
 }
 

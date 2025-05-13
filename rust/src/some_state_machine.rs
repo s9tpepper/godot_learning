@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Mutex};
+use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use godot::{global::godot_print, obj::Gd};
 
@@ -16,11 +16,19 @@ pub enum SomeStates<T> {
     // Walking(Walking<Player3D>),
 }
 
+impl SomeStates<Gd<Player3D>> {
+    fn get_default_state_name() -> String {
+        Idle::state_name()
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
     context: Option<Gd<Player3D>>,
 
     states: HashMap<String, SomeStates<Gd<Player3D>>>,
+
+    #[allow(unused)]
     current_state: String,
     // current_state_node: SomeStates,
 }
@@ -46,23 +54,23 @@ impl FiniteStateMachine for SomeStateMachine {
     type States = HashMap<String, SomeStates<Gd<Player3D>>>;
     type Context = Gd<Player3D>;
 
-    fn ready(&mut self, m: Fsm) {
+    fn ready(&mut self, state_machine: Fsm) {
         godot_print!("[SomeStateMachine::ready()]");
+
         let Some(context) = &self.context else {
             godot_print!("[SomeStateMachine::ready()] - No context found");
             return;
         };
 
-        godot_print!("[SomeStateMachine::ready()] - Started channel.");
+        self.states = self.setup_states(context.clone(), state_machine.clone());
 
-        self.states = self.setup_states(context.clone(), m.clone());
         godot_print!(
             "[SomeStateMachine::ready()] - Set up states. {:?}",
             self.states
         );
 
-        self.switch("Idle");
-        self.switch("Idle<Gd<Player3D>>");
+        self.switch(&SomeStates::get_default_state_name());
+
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
 
@@ -84,8 +92,6 @@ impl FiniteStateMachine for SomeStateMachine {
 
         // TODO: Make this macro to facilitate registering states
         // register_states!(Idle, Walking, sender);
-
-        // let mut state_machine = Rc::new(Mutex::new(self));
 
         let mut idle = Idle::<Self::Context>::new(context);
         idle.set_state_machine(state_machine);
@@ -110,8 +116,8 @@ impl SomeStateMachine {
         }
     }
 
-    pub fn physics_process(&mut self, delta: f64) {
-        let Some(mut state_node) = self.states.get(&self.current_state.to_string()) else {
+    pub fn _physics_process(&mut self, _delta: f64) {
+        let Some(mut _state_node) = self.states.get(&self.current_state.to_string()) else {
             return;
         };
 
@@ -121,7 +127,7 @@ impl SomeStateMachine {
         // }
     }
 
-    fn process(&mut self, _delta: f64) {
+    fn _process(&mut self, _delta: f64) {
         // let Some(receiver) = &self.receiver else {
         //     return;
         // };

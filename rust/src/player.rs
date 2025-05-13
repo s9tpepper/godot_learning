@@ -21,12 +21,6 @@ pub struct Player3D {
 pub type Fsm =
     FsmHelper<SomeStates<Gd<Player3D>>, HashMap<String, SomeStates<Gd<Player3D>>>, Gd<Player3D>>;
 
-// impl Default for Fsm {
-//     fn default() -> Self {
-//         panic!("Dont Default");
-//     }
-// }
-
 pub type FsmHelper<E, S, C> =
     Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, States = S, Context = C>>>>;
 
@@ -37,8 +31,8 @@ impl ICharacterBody3D for Player3D {
         let state_machine = SomeStateMachine::new(self.to_gd());
 
         let machine: Fsm = Rc::new(RefCell::new(Box::new(state_machine)));
-        let m = machine.clone();
-        machine.borrow_mut().ready(m);
+        let machine_rc = machine.clone();
+        machine.borrow_mut().ready(machine_rc);
 
         self.state_machine = Some(machine.clone());
     }
