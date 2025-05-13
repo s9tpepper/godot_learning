@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use godot::classes::notify::Node3DNotification;
@@ -18,10 +17,9 @@ pub struct Player3D {
     state_machine: Option<Fsm<Gd<Player3D>>>,
 }
 
-pub type Fsm<C> = FsmHelper<SomeStates<C>, HashMap<String, SomeStates<C>>, C>;
+pub type Fsm<C> = FsmHelper<SomeStates<C>, C>;
 
-pub type FsmHelper<E, S, C> =
-    Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, States = S, Context = C>>>>;
+pub type FsmHelper<E, C> = Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, Context = C>>>>;
 
 #[godot_api]
 impl ICharacterBody3D for Player3D {

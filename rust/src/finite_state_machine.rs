@@ -1,21 +1,26 @@
 #![allow(non_snake_case)]
 
+use std::collections::HashMap;
+
 use godot::global::godot_print;
 
 use crate::{player::FsmHelper, states::StateUpdates};
 
+pub type StateMap = HashMap<String, Box<dyn StateUpdates>>;
+
 pub trait FiniteStateMachine: std::fmt::Debug {
     type Enum;
-    type States: Default;
     type Context;
 
-    fn ready(&mut self, state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>);
+    fn ready(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>);
+
     fn setup_states(
         &mut self,
         context: Self::Context,
-        state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>,
-    ) -> Self::States;
-    fn get_state(&mut self, state: &str) -> Option<&mut dyn StateUpdates>;
+        state_machine: FsmHelper<Self::Enum, Self::Context>,
+    ) -> StateMap;
+
+    fn get_state(&mut self, state: &str) -> Option<&mut Box<dyn StateUpdates>>;
 
     fn switch(&mut self, state: &str) {
         godot_print!("[FiniteStateMachine::switch()] {state}");
@@ -27,26 +32,3 @@ pub trait FiniteStateMachine: std::fmt::Debug {
         }
     }
 }
-
-// Treated as an enum with two values: "One" and "Two"
-// Displayed in the editor
-// Treated as read-only by the editor
-// #[var(
-//     usage_flags = [EDITOR, GROUP]
-// )]
-// my_group_of_things: i8,
-//
-// #[export]
-// my_export: i32,
-//
-// #[export]
-// my_other_thing: i32,
-//
-// #[var(
-//     usage_flags = [EDITOR, GROUP]
-// )]
-// SecondGroup: i8,
-// #[export]
-// my_other_thingie: i32,
-// #[export(flags_3d_navigation)]
-// collision_layers: i16,

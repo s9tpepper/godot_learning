@@ -1,10 +1,7 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
-
-use godot::{global::godot_print, obj::Gd};
+use godot::global::godot_print;
 
 use crate::{
-    impl_state,
-    player::{Fsm, FsmHelper, Player3D},
+    player::{Fsm, FsmHelper},
     some_state_machine::SomeStates,
 };
 
@@ -27,35 +24,23 @@ impl<T> Idle<T> {
     }
 }
 
-// impl_state!(
-//     Idle<Gd<Player3D>>,
-//     SomeStates<Gd<Player3D>>,
-//     HashMap <String, SomeStates<Gd<Player3D>>>,
-//     Gd<Player3D>
-// );
-
 impl<C> State for Idle<C> {
     type Enum = SomeStates<C>;
-    type States = HashMap<String, SomeStates<C>>;
     type Context = C;
 
-    fn set_state_machine(
-        &mut self,
-        state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>,
-    ) {
+    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>) {
         self.state_machine = Some(state_machine);
     }
 
     fn get_state_name(&self) -> String {
-        stringify!($t).to_string()
-    }
-
-    fn state_name() -> String {
-        stringify!($t).to_string()
+        "Idle".to_string()
     }
 }
 
-impl<T> StateUpdates for Rc<Mutex<Idle<T>>> {
+impl<T: std::fmt::Debug> StateUpdates for Idle<T>
+where
+    T: 'static,
+{
     fn enter(&self) {
         godot_print!("Implement the enter logic for Idle state")
     }
