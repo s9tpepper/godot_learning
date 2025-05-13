@@ -4,18 +4,18 @@ use godot::{global::godot_print, obj::Gd};
 
 use crate::{
     impl_state,
-    player::{Fsm, Player3D},
+    player::{Fsm, FsmHelper, Player3D},
     some_state_machine::SomeStates,
 };
 
-use super::StateUpdates;
+use super::{State, StateUpdates};
 
 #[derive(Debug)]
 pub struct Idle<T> {
     #[allow(unused)]
     context: T,
 
-    state_machine: Option<Fsm>,
+    state_machine: Option<Fsm<T>>,
 }
 
 impl<T> Idle<T> {
@@ -27,12 +27,33 @@ impl<T> Idle<T> {
     }
 }
 
-impl_state!(
-    Idle<Gd<Player3D>>,
-    SomeStates<Gd<Player3D>>,
-    HashMap <String, SomeStates<Gd<Player3D>>>,
-    Gd<Player3D>
-);
+// impl_state!(
+//     Idle<Gd<Player3D>>,
+//     SomeStates<Gd<Player3D>>,
+//     HashMap <String, SomeStates<Gd<Player3D>>>,
+//     Gd<Player3D>
+// );
+
+impl<C> State for Idle<C> {
+    type Enum = SomeStates<C>;
+    type States = HashMap<String, SomeStates<C>>;
+    type Context = C;
+
+    fn set_state_machine(
+        &mut self,
+        state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>,
+    ) {
+        self.state_machine = Some(state_machine);
+    }
+
+    fn get_state_name(&self) -> String {
+        stringify!($t).to_string()
+    }
+
+    fn state_name() -> String {
+        stringify!($t).to_string()
+    }
+}
 
 impl<T> StateUpdates for Rc<Mutex<Idle<T>>> {
     fn enter(&self) {

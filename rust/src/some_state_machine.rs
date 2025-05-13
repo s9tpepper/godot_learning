@@ -16,24 +16,24 @@ pub enum SomeStates<T> {
     // Walking(Walking<Player3D>),
 }
 
-impl SomeStates<Gd<Player3D>> {
+impl<T> SomeStates<T> {
     fn get_default_state_name() -> String {
-        Idle::state_name()
+        Idle::<T>::state_name()
     }
 }
 
 #[derive(Debug, Default)]
-pub struct SomeStateMachine {
-    context: Option<Gd<Player3D>>,
+pub struct SomeStateMachine<C: std::fmt::Debug> {
+    context: Option<C>,
 
-    states: HashMap<String, SomeStates<Gd<Player3D>>>,
+    states: HashMap<String, SomeStates<C>>,
 
     #[allow(unused)]
     current_state: String,
     // current_state_node: SomeStates,
 }
 
-impl SomeStates<Gd<Player3D>> {
+impl<T> SomeStates<T> {
     pub fn as_state_mut(&mut self) -> &mut dyn StateUpdates {
         match self {
             SomeStates::Noop => panic!(),
@@ -49,12 +49,12 @@ impl Default for &mut SomeStates<Gd<Player3D>> {
     }
 }
 
-impl FiniteStateMachine for SomeStateMachine {
-    type Enum = SomeStates<Gd<Player3D>>;
-    type States = HashMap<String, SomeStates<Gd<Player3D>>>;
-    type Context = Gd<Player3D>;
+impl<C: std::fmt::Debug + Clone> FiniteStateMachine for SomeStateMachine<C> {
+    type Enum = SomeStates<C>;
+    type States = HashMap<String, SomeStates<C>>;
+    type Context = C;
 
-    fn ready(&mut self, state_machine: Fsm) {
+    fn ready(&mut self, state_machine: Fsm<C>) {
         godot_print!("[SomeStateMachine::ready()]");
 
         let Some(context) = &self.context else {
@@ -69,7 +69,7 @@ impl FiniteStateMachine for SomeStateMachine {
             self.states
         );
 
-        self.switch(&SomeStates::get_default_state_name());
+        self.switch(&SomeStates::<C>::get_default_state_name());
 
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
@@ -85,7 +85,7 @@ impl FiniteStateMachine for SomeStateMachine {
         }
     }
 
-    fn setup_states(&mut self, context: Self::Context, state_machine: Fsm) -> Self::States {
+    fn setup_states(&mut self, context: Self::Context, state_machine: Fsm<C>) -> Self::States {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
         let mut states: Self::States = HashMap::new();
@@ -97,6 +97,7 @@ impl FiniteStateMachine for SomeStateMachine {
         idle.set_state_machine(state_machine);
 
         let state_name = idle.get_state_name();
+
         let idle_rc = Rc::new(Mutex::new(idle));
         states.insert(state_name, SomeStates::Idle(idle_rc));
 
@@ -104,8 +105,8 @@ impl FiniteStateMachine for SomeStateMachine {
     }
 }
 
-impl SomeStateMachine {
-    pub fn new(context: Gd<Player3D>) -> Self {
+impl<C: std::fmt::Debug> SomeStateMachine<C> {
+    pub fn new(context: C) -> Self {
         SomeStateMachine {
             context: Some(context),
             states: HashMap::default(),
