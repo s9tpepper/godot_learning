@@ -1,9 +1,6 @@
 use godot::{global::godot_print, obj::Gd};
 
-use crate::{
-    player::{Fsm, FsmHelper, MovementContext},
-    some_state_machine::SomeStates,
-};
+use crate::player::{Fsm, FsmHelper, MovementContext};
 
 use super::{State, StateUpdates};
 
@@ -26,9 +23,8 @@ impl Idle {
 
 impl State for Idle {
     type Context = Gd<MovementContext>;
-    type Enum = SomeStates<Self::Context>;
 
-    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>) {
+    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context>) {
         self.state_machine = Some(state_machine);
     }
 

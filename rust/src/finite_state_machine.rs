@@ -9,15 +9,14 @@ use crate::{player::FsmHelper, states::StateUpdates};
 pub type StateMap = HashMap<String, Box<dyn StateUpdates>>;
 
 pub trait FiniteStateMachine: std::fmt::Debug {
-    type Enum;
     type Context;
 
-    fn ready(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>);
+    fn ready(&mut self, state_machine: FsmHelper<Self::Context>);
 
     fn setup_states(
         &mut self,
         context: Self::Context,
-        state_machine: FsmHelper<Self::Enum, Self::Context>,
+        state_machine: FsmHelper<Self::Context>,
     ) -> StateMap;
 
     fn get_state(&mut self, state: &str) -> Option<&mut Box<dyn StateUpdates>>;

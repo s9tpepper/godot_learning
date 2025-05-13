@@ -1,20 +1,12 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
+use std::collections::HashMap;
 
 use godot::{global::godot_print, obj::Gd};
 
 use crate::{
     finite_state_machine::{FiniteStateMachine, StateMap},
-    player::{Fsm, MovementContext, Player3D},
+    player::{Fsm, MovementContext},
     states::{State, StateUpdates, idle::Idle, walking::Walking},
 };
-
-#[derive(Debug, Default)]
-pub enum SomeStates<T> {
-    #[default]
-    Noop,
-    Idle(Rc<Mutex<Idle<T>>>),
-    // Walking(Walking<Player3D>),
-}
 
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
@@ -26,14 +18,7 @@ pub struct SomeStateMachine {
     current_state: String,
 }
 
-impl Default for &mut SomeStates<Gd<Player3D>> {
-    fn default() -> Self {
-        panic!("Yeet")
-    }
-}
-
 impl FiniteStateMachine for SomeStateMachine {
-    type Enum = SomeStates<Gd<MovementContext>>;
     type Context = Gd<MovementContext>;
 
     fn ready(&mut self, state_machine: Fsm<Self::Context>) {

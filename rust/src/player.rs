@@ -6,7 +6,7 @@ use godot::classes::{CharacterBody3D, ICharacterBody3D, InputEvent};
 use godot::prelude::*;
 
 use crate::finite_state_machine::FiniteStateMachine;
-use crate::some_state_machine::{SomeStateMachine, SomeStates};
+use crate::some_state_machine::SomeStateMachine;
 
 #[derive(Debug, GodotClass)]
 #[class(base=CharacterBody3D, init)]
@@ -20,9 +20,9 @@ pub struct Player3D {
     state_machine: Option<Fsm<Gd<MovementContext>>>,
 }
 
-pub type Fsm<C> = FsmHelper<SomeStates<C>, C>;
+pub type Fsm<C> = FsmHelper<C>;
 
-pub type FsmHelper<E, C> = Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, Context = C>>>>;
+pub type FsmHelper<C> = Rc<RefCell<Box<dyn FiniteStateMachine<Context = C>>>>;
 
 #[derive(Default, Debug, GodotClass)]
 #[class(base=Resource, init)]

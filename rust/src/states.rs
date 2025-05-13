@@ -4,11 +4,10 @@ pub mod idle;
 pub mod walking;
 
 pub trait State {
-    type Enum;
     type Context;
 
     fn get_state_name(&self) -> String;
-    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>);
+    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context>);
 }
 
 pub trait StateUpdates: std::fmt::Debug {
