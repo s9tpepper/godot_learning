@@ -2,24 +2,29 @@
 
 use godot::global::godot_print;
 
-use crate::states::StateUpdates;
+use crate::{player::FsmHelper, states::StateUpdates};
 
 pub trait FiniteStateMachine: std::fmt::Debug {
     type Enum;
     type States: Default;
     type Context;
 
-    fn setup_states(&mut self, context: Self::Context) -> Self::States;
-    fn get_state(&mut self, state: &str) -> &mut dyn StateUpdates;
+    fn ready(&mut self, state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>);
+    fn setup_states(
+        &mut self,
+        context: Self::Context,
+        state_machine: FsmHelper<Self::Enum, Self::States, Self::Context>,
+    ) -> Self::States;
+    fn get_state(&mut self, state: &str) -> Option<&mut dyn StateUpdates>;
 
     fn switch(&mut self, state: &str) {
-        godot_print!("[FiniteStateMachine::switch()]");
+        godot_print!("[FiniteStateMachine::switch()] {state}");
 
-        let to_state = self.get_state(state);
-        godot_print!("[FiniteStateMachine::switch() - Got state]");
-
-        to_state.enter();
-        godot_print!("[FiniteStateMachine::switch() - Triggered enter() on state]");
+        if let Some(to_state) = self.get_state(state) {
+            godot_print!("[FiniteStateMachine::switch() - Got state]");
+            to_state.enter();
+            godot_print!("[FiniteStateMachine::switch() - Triggered enter() on state]");
+        }
     }
 }
 

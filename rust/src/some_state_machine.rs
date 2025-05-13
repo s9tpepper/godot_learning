@@ -1,10 +1,10 @@
-use std::{collections::HashMap, rc::Rc, sync::Mutex};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Mutex};
 
 use godot::{global::godot_print, obj::Gd};
 
 use crate::{
     finite_state_machine::FiniteStateMachine,
-    player::Player3D,
+    player::{Fsm, Player3D},
     states::{State, StateUpdates, idle::Idle},
 };
 
@@ -46,13 +46,38 @@ impl FiniteStateMachine for SomeStateMachine {
     type States = HashMap<String, SomeStates<Gd<Player3D>>>;
     type Context = Gd<Player3D>;
 
-    fn get_state(&mut self, state: &str) -> &mut dyn StateUpdates {
-        let state = self.states.get_mut(state).expect("State is not registered");
+    fn ready(&mut self, m: Fsm) {
+        godot_print!("[SomeStateMachine::ready()]");
+        let Some(context) = &self.context else {
+            godot_print!("[SomeStateMachine::ready()] - No context found");
+            return;
+        };
 
-        state.as_state_mut()
+        godot_print!("[SomeStateMachine::ready()] - Started channel.");
+
+        self.states = self.setup_states(context.clone(), m.clone());
+        godot_print!(
+            "[SomeStateMachine::ready()] - Set up states. {:?}",
+            self.states
+        );
+
+        self.switch("Idle");
+        self.switch("Idle<Gd<Player3D>>");
+        godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
 
-    fn setup_states(&mut self, context: Self::Context) -> Self::States {
+    fn get_state(&mut self, state: &str) -> Option<&mut dyn StateUpdates> {
+        let state = self.states.get_mut(state);
+        match state {
+            Some(state) => Some(state.as_state_mut()),
+            None => {
+                godot_print!("Could not retrieve requested state: {state:?}");
+                None
+            }
+        }
+    }
+
+    fn setup_states(&mut self, context: Self::Context, state_machine: Fsm) -> Self::States {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
         let mut states: Self::States = HashMap::new();
@@ -60,9 +85,10 @@ impl FiniteStateMachine for SomeStateMachine {
         // TODO: Make this macro to facilitate registering states
         // register_states!(Idle, Walking, sender);
 
-        let mut state_machine = Rc::new(Mutex::new(self));
+        // let mut state_machine = Rc::new(Mutex::new(self));
 
-        let idle = Idle::<Self::Context>::new(context);
+        let mut idle = Idle::<Self::Context>::new(context);
+        idle.set_state_machine(state_machine);
 
         let state_name = idle.get_state_name();
         let idle_rc = Rc::new(Mutex::new(idle));
@@ -93,24 +119,6 @@ impl SomeStateMachine {
         // if let Some(current_state) = tmp.downcast_ref::<Box<dyn StateUpdates>>() {
         //     current_state.update(delta as f32);
         // }
-    }
-
-    pub fn ready(&mut self) {
-        godot_print!("[SomeStateMachine::ready()]");
-        let Some(context) = &self.context else {
-            godot_print!("[SomeStateMachine::ready()] - No context found");
-            return;
-        };
-
-        godot_print!("[SomeStateMachine::ready()] - Started channel.");
-
-        self.states = self.setup_states(context.clone());
-
-        godot_print!("[SomeStateMachine::ready()] - Set up states.");
-        // godot_print!("states: {:?}", self.states);
-
-        self.switch("Idle");
-        godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
 
     fn process(&mut self, _delta: f64) {

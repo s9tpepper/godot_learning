@@ -1,23 +1,36 @@
-use std::{rc::Rc, sync::Mutex};
+use std::{collections::HashMap, rc::Rc, sync::Mutex};
 
 use godot::{global::godot_print, obj::Gd};
 
-use crate::{impl_state, player::Player3D};
+use crate::{
+    impl_state,
+    player::{Fsm, Player3D},
+    some_state_machine::SomeStates,
+};
 
 use super::StateUpdates;
 
 #[derive(Debug)]
 pub struct Idle<T> {
     context: T,
+    state_machine: Option<Fsm>,
 }
 
 impl<T> Idle<T> {
     pub fn new(context: T) -> Self {
-        Idle { context }
+        Idle {
+            context,
+            state_machine: None,
+        }
     }
 }
 
-impl_state!(Idle<Gd<Player3D>>);
+impl_state!(
+    Idle<Gd<Player3D>>,
+    SomeStates<Gd<Player3D>>,
+    HashMap <String, SomeStates<Gd<Player3D>>>,
+    Gd<Player3D>
+);
 
 impl<T> StateUpdates for Rc<Mutex<Idle<T>>> {
     fn enter(&self) {

@@ -1,8 +1,13 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use godot::classes::notify::Node3DNotification;
 use godot::classes::{CharacterBody3D, ICharacterBody3D, InputEvent};
 use godot::prelude::*;
 
-use crate::some_state_machine::SomeStateMachine;
+use crate::finite_state_machine::FiniteStateMachine;
+use crate::some_state_machine::{SomeStateMachine, SomeStates};
 
 #[derive(Debug, GodotClass)]
 #[class(base=CharacterBody3D, init)]
@@ -10,15 +15,32 @@ use crate::some_state_machine::SomeStateMachine;
 pub struct Player3D {
     base: Base<CharacterBody3D>,
 
-    state_machine: SomeStateMachine,
+    state_machine: Option<Fsm>,
 }
+
+pub type Fsm =
+    FsmHelper<SomeStates<Gd<Player3D>>, HashMap<String, SomeStates<Gd<Player3D>>>, Gd<Player3D>>;
+
+// impl Default for Fsm {
+//     fn default() -> Self {
+//         panic!("Dont Default");
+//     }
+// }
+
+pub type FsmHelper<E, S, C> =
+    Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, States = S, Context = C>>>>;
 
 #[godot_api]
 impl ICharacterBody3D for Player3D {
     // Called when the node is ready in the scene tree.
     fn ready(&mut self) {
-        self.state_machine = SomeStateMachine::new(self.to_gd());
-        self.state_machine.ready();
+        let state_machine = SomeStateMachine::new(self.to_gd());
+
+        let machine: Fsm = Rc::new(RefCell::new(Box::new(state_machine)));
+        let m = machine.clone();
+        machine.borrow_mut().ready(m);
+
+        self.state_machine = Some(machine.clone());
     }
 
     // Called every frame.
