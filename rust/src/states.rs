@@ -12,7 +12,7 @@ pub trait State {
 }
 
 pub trait StateUpdates: std::fmt::Debug {
-    fn enter(&self);
+    fn enter(&mut self);
     fn update(&self, delta: f32);
     fn exit(&self);
 }
@@ -24,7 +24,7 @@ impl Default for Box<dyn StateUpdates> {
 }
 
 impl StateUpdates for () {
-    fn enter(&self) {
+    fn enter(&mut self) {
         todo!()
     }
 

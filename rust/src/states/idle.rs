@@ -1,22 +1,22 @@
-use godot::global::godot_print;
+use godot::{global::godot_print, obj::Gd};
 
 use crate::{
-    player::{Fsm, FsmHelper},
+    player::{Fsm, FsmHelper, MovementContext},
     some_state_machine::SomeStates,
 };
 
 use super::{State, StateUpdates};
 
 #[derive(Debug)]
-pub struct Idle<T> {
+pub struct Idle {
     #[allow(unused)]
-    context: T,
+    context: Gd<MovementContext>,
 
-    state_machine: Option<Fsm<T>>,
+    state_machine: Option<Fsm<Gd<MovementContext>>>,
 }
 
-impl<T> Idle<T> {
-    pub fn new(context: T) -> Self {
+impl Idle {
+    pub fn new(context: Gd<MovementContext>) -> Self {
         Idle {
             context,
             state_machine: None,
@@ -24,9 +24,9 @@ impl<T> Idle<T> {
     }
 }
 
-impl<C> State for Idle<C> {
-    type Enum = SomeStates<C>;
-    type Context = C;
+impl State for Idle {
+    type Context = Gd<MovementContext>;
+    type Enum = SomeStates<Self::Context>;
 
     fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>) {
         self.state_machine = Some(state_machine);
@@ -37,12 +37,14 @@ impl<C> State for Idle<C> {
     }
 }
 
-impl<T: std::fmt::Debug> StateUpdates for Idle<T>
-where
-    T: 'static,
-{
-    fn enter(&self) {
-        godot_print!("Implement the enter logic for Idle state")
+impl StateUpdates for Idle {
+    fn enter(&mut self) {
+        godot_print!("Implement the enter logic for Idle state");
+
+        godot_print!(
+            "animation name {}",
+            self.context.bind_mut().get_walking_animation_name()
+        );
     }
 
     fn update(&self, _delta: f32) {

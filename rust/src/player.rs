@@ -12,31 +12,44 @@ use crate::some_state_machine::{SomeStateMachine, SomeStates};
 #[class(base=CharacterBody3D, init)]
 #[allow(unused)]
 pub struct Player3D {
+    #[export]
+    context: Option<Gd<MovementContext>>,
+
     base: Base<CharacterBody3D>,
 
-    state_machine: Option<Fsm<Gd<Player3D>>>,
+    state_machine: Option<Fsm<Gd<MovementContext>>>,
 }
 
 pub type Fsm<C> = FsmHelper<SomeStates<C>, C>;
 
 pub type FsmHelper<E, C> = Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, Context = C>>>>;
 
-struct MovementContext {
-    // animation player
-    // transform and stuff
+#[derive(Default, Debug, GodotClass)]
+#[class(base=Resource, init)]
+pub struct MovementContext {
+    #[export]
+    pub player: NodePath,
+
+    #[export]
+    pub player_scene: NodePath,
+
+    #[export]
+    pub walking_animation_name: GString,
 }
 
 #[godot_api]
 impl ICharacterBody3D for Player3D {
     // Called when the node is ready in the scene tree.
     fn ready(&mut self) {
-        let state_machine = SomeStateMachine::new(self.to_gd());
+        if let Some(context) = &self.context {
+            let state_machine = SomeStateMachine::new(context.clone());
 
-        let machine: Fsm<Gd<Player3D>> = Rc::new(RefCell::new(Box::new(state_machine)));
-        let machine_rc = machine.clone();
-        machine.borrow_mut().ready(machine_rc);
+            let machine: Fsm<Gd<MovementContext>> = Rc::new(RefCell::new(Box::new(state_machine)));
+            let machine_rc = machine.clone();
+            machine.borrow_mut().ready(machine_rc);
 
-        self.state_machine = Some(machine.clone());
+            self.state_machine = Some(machine.clone());
+        }
     }
 
     // Called every frame.

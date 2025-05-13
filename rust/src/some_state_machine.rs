@@ -4,7 +4,7 @@ use godot::{global::godot_print, obj::Gd};
 
 use crate::{
     finite_state_machine::{FiniteStateMachine, StateMap},
-    player::{Fsm, Player3D},
+    player::{Fsm, MovementContext, Player3D},
     states::{State, StateUpdates, idle::Idle, walking::Walking},
 };
 
@@ -17,8 +17,8 @@ pub enum SomeStates<T> {
 }
 
 #[derive(Debug, Default)]
-pub struct SomeStateMachine<C: std::fmt::Debug> {
-    context: Option<C>,
+pub struct SomeStateMachine {
+    context: Option<Gd<MovementContext>>,
 
     states: StateMap,
 
@@ -32,20 +32,21 @@ impl Default for &mut SomeStates<Gd<Player3D>> {
     }
 }
 
-impl<C: std::fmt::Debug + Clone> FiniteStateMachine for SomeStateMachine<C>
-where
-    C: 'static,
-{
-    type Enum = SomeStates<C>;
-    type Context = C;
+impl FiniteStateMachine for SomeStateMachine {
+    type Enum = SomeStates<Gd<MovementContext>>;
+    type Context = Gd<MovementContext>;
 
-    fn ready(&mut self, state_machine: Fsm<C>) {
+    fn ready(&mut self, state_machine: Fsm<Self::Context>) {
         godot_print!("[SomeStateMachine::ready()]");
 
         let Some(context) = &self.context else {
             godot_print!("[SomeStateMachine::ready()] - No context found");
             return;
         };
+
+        godot_print!("context: {context:?}");
+
+        // context
 
         self.states = self.setup_states(context.clone(), state_machine.clone());
 
@@ -54,7 +55,7 @@ where
             self.states
         );
 
-        self.switch("Walking");
+        self.switch("Idle");
 
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
@@ -70,7 +71,11 @@ where
         }
     }
 
-    fn setup_states(&mut self, context: Self::Context, state_machine: Fsm<C>) -> StateMap {
+    fn setup_states(
+        &mut self,
+        context: Self::Context,
+        state_machine: Fsm<Self::Context>,
+    ) -> StateMap {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
         let mut states: StateMap = HashMap::new();
@@ -80,13 +85,13 @@ where
         // OR: make this a function in FiniteStateMachine to avoid
         // the repetition
 
-        let mut idle = Idle::<Self::Context>::new(context.clone());
+        let mut idle = Idle::new(context.clone());
         idle.set_state_machine(state_machine.clone());
         let state_name = idle.get_state_name();
         let boxed = Box::new(idle) as Box<dyn StateUpdates>;
         states.insert(state_name, boxed);
 
-        let mut walking = Walking::<Self::Context>::new(context.clone());
+        let mut walking = Walking::new(context.clone());
         walking.set_state_machine(state_machine.clone());
         let state_name = walking.get_state_name();
         let boxed = Box::new(walking) as Box<dyn StateUpdates>;
@@ -96,8 +101,8 @@ where
     }
 }
 
-impl<C: std::fmt::Debug> SomeStateMachine<C> {
-    pub fn new(context: C) -> Self {
+impl SomeStateMachine {
+    pub fn new(context: Gd<MovementContext>) -> Self {
         SomeStateMachine {
             context: Some(context),
             states: HashMap::default(),

@@ -1,6 +1,11 @@
-[gd_scene load_steps=11 format=3 uid="uid://3i5v55pgespf"]
+[gd_scene load_steps=12 format=3 uid="uid://3i5v55pgespf"]
 
 [ext_resource type="PackedScene" uid="uid://krf5olk44ixk" path="res://walking_character.tscn" id="1_2c62f"]
+
+[sub_resource type="MovementContext" id="MovementContext_0f027"]
+player = NodePath(".")
+player_scene = NodePath("Player")
+walking_animation_name = "mixamo_com"
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2c62f"]
 radius = 0.341212
@@ -31,6 +36,7 @@ physics_interpolation_mode = 1
 transform = Transform3D(0.862697, -0.374264, -0.340117, 0.505451, 0.616147, 0.604055, -0.0165137, -0.693029, 0.720721, 7.46761, 6.0036, 7.26263)
 
 [node name="Player3D" type="Player3D" parent="."]
+context = SubResource("MovementContext_0f027")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player3D"]
 physics_interpolation_mode = 1
