@@ -1,42 +1,55 @@
-// use godot::{
-//     classes::{INode, Node, Node3D},
-//     global::godot_print,
-//     obj::{Base, Gd},
-//     prelude::{GodotClass, godot_api},
-// };
-//
-// use crate::impl_state;
-//
-// use super::StateUpdates;
-//
-// #[derive(GodotClass)]
-// #[class(base=Node, init)]
-// pub struct Walking {
-//     #[base]
-//     base: Base<Node>,
-//
-//     context: Option<Gd<Node3D>>,
-//     // state_machine:
-// }
-//
-// #[godot_api]
-// impl INode for Walking {
-//     fn ready(&mut self) {}
-//     fn physics_process(&mut self, _delta: f64) {}
-// }
-//
-// impl_state!(Walking);
-//
-// impl StateUpdates for Gd<Walking> {
-//     fn enter(&self) {
-//         godot_print!("Implement the enter logic for Walking state")
-//     }
-//
-//     fn update(&self, _delta: f32) {
-//         todo!()
-//     }
-//
-//     fn exit(&self) {
-//         todo!()
-//     }
-// }
+use godot::global::godot_print;
+
+use crate::{
+    player::{Fsm, FsmHelper},
+    some_state_machine::SomeStates,
+};
+
+use super::{State, StateUpdates};
+
+#[derive(Debug)]
+pub struct Walking<T> {
+    #[allow(unused)]
+    context: T,
+
+    state_machine: Option<Fsm<T>>,
+}
+
+impl<T> Walking<T> {
+    pub fn new(context: T) -> Self {
+        Walking {
+            context,
+            state_machine: None,
+        }
+    }
+}
+
+impl<C> State for Walking<C> {
+    type Enum = SomeStates<C>;
+    type Context = C;
+
+    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Enum, Self::Context>) {
+        self.state_machine = Some(state_machine);
+    }
+
+    fn get_state_name(&self) -> String {
+        "Walking".to_string()
+    }
+}
+
+impl<T: std::fmt::Debug> StateUpdates for Walking<T>
+where
+    T: 'static,
+{
+    fn enter(&self) {
+        godot_print!("Implement the enter logic for Walking state")
+    }
+
+    fn update(&self, _delta: f32) {
+        todo!()
+    }
+
+    fn exit(&self) {
+        todo!()
+    }
+}

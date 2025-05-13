@@ -21,6 +21,11 @@ pub type Fsm<C> = FsmHelper<SomeStates<C>, C>;
 
 pub type FsmHelper<E, C> = Rc<RefCell<Box<dyn FiniteStateMachine<Enum = E, Context = C>>>>;
 
+struct MovementContext {
+    // animation player
+    // transform and stuff
+}
+
 #[godot_api]
 impl ICharacterBody3D for Player3D {
     // Called when the node is ready in the scene tree.

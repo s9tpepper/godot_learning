@@ -5,7 +5,7 @@ use godot::{global::godot_print, obj::Gd};
 use crate::{
     finite_state_machine::{FiniteStateMachine, StateMap},
     player::{Fsm, Player3D},
-    states::{State, StateUpdates, idle::Idle},
+    states::{State, StateUpdates, idle::Idle, walking::Walking},
 };
 
 #[derive(Debug, Default)]
@@ -54,7 +54,7 @@ where
             self.states
         );
 
-        self.switch("Idle");
+        self.switch("Walking");
 
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
@@ -76,14 +76,20 @@ where
         let mut states: StateMap = HashMap::new();
 
         // TODO: Make this macro to facilitate registering states
-        // register_states!(Idle, Walking, sender);
+        // register_states!(Idle, Walking);
+        // OR: make this a function in FiniteStateMachine to avoid
+        // the repetition
 
-        let mut idle = Idle::<Self::Context>::new(context);
-        idle.set_state_machine(state_machine);
-
+        let mut idle = Idle::<Self::Context>::new(context.clone());
+        idle.set_state_machine(state_machine.clone());
         let state_name = idle.get_state_name();
-
         let boxed = Box::new(idle) as Box<dyn StateUpdates>;
+        states.insert(state_name, boxed);
+
+        let mut walking = Walking::<Self::Context>::new(context.clone());
+        walking.set_state_machine(state_machine.clone());
+        let state_name = walking.get_state_name();
+        let boxed = Box::new(walking) as Box<dyn StateUpdates>;
         states.insert(state_name, boxed);
 
         states
