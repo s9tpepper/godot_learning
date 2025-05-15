@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3 uid="uid://cv1auxkntu6f8"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gyfs4"]
+albedo_color = Color(0.406157, 0.132929, 0, 0.992157)
+
+[sub_resource type="BoxMesh" id="BoxMesh_0f027"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_0f027"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0f027"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2c62f"]
+
+[node name="Level" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.862697, -0.374264, -0.340117, 0.505451, 0.616147, 0.604055, -0.0165137, -0.693029, 0.720721, 7.46761, 6.0036, 7.26263)
+
+[node name="Floor" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.6386, -0.461648, 8.73781)
+use_collision = true
+size = Vector3(1000, 1, 1000)
+material = SubResource("StandardMaterial3D_gyfs4")
+
+[node name="debug z box" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.692305, 0.117584, 16.6714)
+mesh = SubResource("BoxMesh_0f027")
+skeleton = NodePath("../..")
+
+[node name="debug x sphere" type="CSGMesh3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.02652, 0.178212, -0.66872)
+use_collision = true
+mesh = SubResource("SphereMesh_0f027")
+material = SubResource("StandardMaterial3D_0f027")
+
+[node name="Debug" type="Debug" parent="."]
+offset_right = 40.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 24
+
+[node name="GameMouse" type="GameMouse" parent="."]
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="wall" type="CSGBox3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.058, -7.642)
+use_collision = true
+collision_mask = 0
+size = Vector3(7.67554, 4.0072, 0.185425)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0841913, 2.05841, -7.6419)
+shape = SubResource("BoxShape3D_2c62f")
