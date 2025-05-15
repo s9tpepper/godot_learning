@@ -9,7 +9,7 @@ use crate::finite_state_machine::FiniteStateMachine;
 use crate::some_state_machine::SomeStateMachine;
 use crate::states::movement_states::MovementStates;
 
-#[derive(Debug, GodotClass)]
+#[derive(GodotClass)]
 #[class(base=CharacterBody3D, init)]
 #[allow(unused)]
 pub struct Player3D {

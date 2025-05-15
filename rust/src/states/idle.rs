@@ -60,7 +60,7 @@ impl StateUpdates for Idle {
     }
 
     fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
-        None
+        Some(MovementStates::Walking)
     }
 
     fn exit(&mut self) {
