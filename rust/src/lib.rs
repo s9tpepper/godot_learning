@@ -1,3 +1,5 @@
+#![feature(lazy_type_alias)]
+
 use godot::init::gdextension;
 
 mod actions;

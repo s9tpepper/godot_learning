@@ -5,23 +5,24 @@ use godot::{global::godot_print, obj::Gd};
 use crate::{
     finite_state_machine::{FiniteStateMachine, StateMap},
     player::{Fsm, MovementContext},
-    states::{State, StateUpdates, idle::Idle, walking::Walking},
+    states::{State, StateUpdates, idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
     context: Option<Gd<MovementContext>>,
 
-    states: StateMap,
+    states: StateMap<Self>,
 
     #[allow(unused)]
-    current_state: String,
+    current_state: MovementStates,
 }
 
 impl FiniteStateMachine for SomeStateMachine {
+    type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn ready(&mut self, state_machine: Fsm<Self::Context>) {
+    fn ready(&mut self, state_machine: Fsm<Self::Context, Self::StatesEnum>) {
         godot_print!("[SomeStateMachine::ready()]");
 
         let Some(context) = &self.context else {
@@ -40,13 +41,20 @@ impl FiniteStateMachine for SomeStateMachine {
             self.states
         );
 
-        self.switch("Idle");
+        self.switch(MovementStates::Idle);
 
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
 
-    fn get_state(&mut self, state: &str) -> Option<&mut Box<dyn StateUpdates>> {
-        let state = self.states.get_mut(state);
+    fn set_current_state(&mut self, state: Self::StatesEnum) {
+        self.current_state = state;
+    }
+
+    fn get_state(
+        &mut self,
+        state: Self::StatesEnum,
+    ) -> Option<&mut Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>> {
+        let state = self.states.get_mut(&state);
         match state {
             Some(state) => Some(state),
             None => {
@@ -59,11 +67,11 @@ impl FiniteStateMachine for SomeStateMachine {
     fn setup_states(
         &mut self,
         context: Self::Context,
-        state_machine: Fsm<Self::Context>,
-    ) -> StateMap {
+        state_machine: Fsm<Self::Context, Self::StatesEnum>,
+    ) -> StateMap<Self> {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
-        let mut states: StateMap = HashMap::new();
+        let mut states: StateMap<Self> = HashMap::new();
 
         // TODO: Make this macro to facilitate registering states
         // register_states!(Idle, Walking);
@@ -73,16 +81,33 @@ impl FiniteStateMachine for SomeStateMachine {
         let mut idle = Idle::new(context.clone());
         idle.set_state_machine(state_machine.clone());
         let state_name = idle.get_state_name();
-        let boxed = Box::new(idle) as Box<dyn StateUpdates>;
+        let boxed = Box::new(idle) as Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>;
         states.insert(state_name, boxed);
 
         let mut walking = Walking::new(context.clone());
         walking.set_state_machine(state_machine.clone());
         let state_name = walking.get_state_name();
-        let boxed = Box::new(walking) as Box<dyn StateUpdates>;
+        let boxed = Box::new(walking) as Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>;
         states.insert(state_name, boxed);
 
         states
+    }
+
+    fn process(&mut self, delta: f64) -> Option<Self::StatesEnum> {
+        godot_print!(
+            "[some_state_machine::process()] - current state: {}",
+            self.current_state
+        );
+
+        let Some(state) = self.states.get_mut(&self.current_state) else {
+            godot_print!(
+                "[some_state_machine::process()] - could not get state: {}",
+                self.current_state
+            );
+            return None;
+        };
+
+        state.update(delta as f32)
     }
 }
 
@@ -91,15 +116,13 @@ impl SomeStateMachine {
         SomeStateMachine {
             context: Some(context),
             states: HashMap::default(),
-            current_state: "".to_string(),
+            current_state: MovementStates::Idle,
         }
     }
 
     pub fn _physics_process(&mut self, _delta: f64) {
-        let Some(mut _state_node) = self.states.get(&self.current_state.to_string()) else {
+        let Some(mut _state_node) = self.states.get(&self.current_state) else {
             return;
         };
     }
-
-    fn _process(&mut self, _delta: f64) {}
 }

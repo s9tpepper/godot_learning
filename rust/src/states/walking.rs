@@ -2,14 +2,14 @@ use godot::{global::godot_print, obj::Gd};
 
 use crate::player::{Fsm, FsmHelper, MovementContext};
 
-use super::{State, StateUpdates};
+use super::{State, StateUpdates, movement_states::MovementStates};
 
 #[derive(Debug)]
 pub struct Walking {
     #[allow(unused)]
     context: Gd<MovementContext>,
 
-    state_machine: Option<Fsm<Gd<MovementContext>>>,
+    state_machine: Option<Fsm<Gd<MovementContext>, MovementStates>>,
 }
 
 impl Walking {
@@ -22,18 +22,21 @@ impl Walking {
 }
 
 impl State for Walking {
+    type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context>) {
+    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context, Self::StatesEnum>) {
         self.state_machine = Some(state_machine);
     }
 
-    fn get_state_name(&self) -> String {
-        "Walking".to_string()
+    fn get_state_name(&self) -> Self::StatesEnum {
+        MovementStates::Walking
     }
 }
 
 impl StateUpdates for Walking {
+    type StatesEnum = MovementStates;
+
     fn enter(&mut self) {
         godot_print!("Implement the enter logic for Walking state");
         godot_print!("Context: {:?}", self.context);
@@ -44,11 +47,11 @@ impl StateUpdates for Walking {
         )
     }
 
-    fn update(&self, _delta: f32) {
+    fn update(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
         todo!()
     }
 
-    fn exit(&self) {
+    fn exit(&mut self) {
         todo!()
     }
 }

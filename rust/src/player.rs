@@ -7,6 +7,7 @@ use godot::prelude::*;
 
 use crate::finite_state_machine::FiniteStateMachine;
 use crate::some_state_machine::SomeStateMachine;
+use crate::states::movement_states::MovementStates;
 
 #[derive(Debug, GodotClass)]
 #[class(base=CharacterBody3D, init)]
@@ -17,12 +18,12 @@ pub struct Player3D {
 
     base: Base<CharacterBody3D>,
 
-    state_machine: Option<Fsm<Gd<MovementContext>>>,
+    state_machine: Option<Fsm<Gd<MovementContext>, MovementStates>>,
 }
 
-pub type Fsm<C> = FsmHelper<C>;
+pub type Fsm<C, E> = FsmHelper<C, E>;
 
-pub type FsmHelper<C> = Rc<RefCell<Box<dyn FiniteStateMachine<Context = C>>>>;
+pub type FsmHelper<C, E> = Rc<RefCell<Box<dyn FiniteStateMachine<StatesEnum = E, Context = C>>>>;
 
 #[derive(Default, Debug, GodotClass)]
 #[class(base=Resource, init)]
@@ -44,8 +45,10 @@ impl ICharacterBody3D for Player3D {
         if let Some(context) = &self.context {
             let state_machine = SomeStateMachine::new(context.clone());
 
-            let machine: Fsm<Gd<MovementContext>> = Rc::new(RefCell::new(Box::new(state_machine)));
+            let machine: Fsm<Gd<MovementContext>, MovementStates> =
+                Rc::new(RefCell::new(Box::new(state_machine)));
             let machine_rc = machine.clone();
+
             machine.borrow_mut().ready(machine_rc);
 
             self.state_machine = Some(machine.clone());
@@ -53,7 +56,17 @@ impl ICharacterBody3D for Player3D {
     }
 
     // Called every frame.
-    fn process(&mut self, _delta: f64) {}
+    fn process(&mut self, delta: f64) {
+        let Some(machine) = &self.state_machine else {
+            godot_print!("Unable to get state machine reference");
+            return;
+        };
+
+        let mut machine = machine.borrow_mut();
+        if let Some(state_change) = machine.process(delta) {
+            machine.switch(state_change);
+        }
+    }
 
     // Called every physics frame.
     fn physics_process(&mut self, _delta: f64) {}
