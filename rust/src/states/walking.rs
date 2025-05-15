@@ -47,11 +47,13 @@ impl StateUpdates for Walking {
         )
     }
 
-    fn update(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
-        todo!()
+    fn process(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+        None
     }
 
-    fn exit(&mut self) {
-        todo!()
+    fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+        None
     }
+
+    fn exit(&mut self) {}
 }

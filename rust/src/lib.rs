@@ -11,6 +11,7 @@ mod mouse;
 mod movement;
 mod movement_animations;
 mod player;
+mod shell;
 mod some_state_machine;
 mod states;
 

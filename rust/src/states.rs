@@ -18,7 +18,8 @@ pub trait StateUpdates: std::fmt::Debug {
     type StatesEnum;
 
     fn enter(&mut self);
-    fn update(&mut self, delta: f32) -> Option<Self::StatesEnum>;
+    fn process(&mut self, delta: f32) -> Option<Self::StatesEnum>;
+    fn process_physics(&mut self, delta: f32) -> Option<Self::StatesEnum>;
     fn exit(&mut self);
 }
 
@@ -35,7 +36,11 @@ impl StateUpdates for () {
         todo!()
     }
 
-    fn update(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+    fn process(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+        todo!()
+    }
+
+    fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
         todo!()
     }
 

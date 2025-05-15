@@ -49,15 +49,18 @@ impl StateUpdates for Idle {
         );
     }
 
-    fn update(&mut self, delta: f32) -> Option<Self::StatesEnum> {
+    fn process(&mut self, delta: f32) -> Option<Self::StatesEnum> {
         self.elapsed += delta;
-        godot_print!("[Idle::update()] elapsed: {}", self.elapsed);
 
         if self.elapsed < 1. {
             return Some(MovementStates::Idle);
         }
 
         Some(MovementStates::Walking)
+    }
+
+    fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+        None
     }
 
     fn exit(&mut self) {

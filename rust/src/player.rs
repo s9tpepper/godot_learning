@@ -42,6 +42,8 @@ pub struct MovementContext {
 impl ICharacterBody3D for Player3D {
     // Called when the node is ready in the scene tree.
     fn ready(&mut self) {
+        godot_print!("PLAYER READY ONE");
+
         if let Some(context) = &self.context {
             let state_machine = SomeStateMachine::new(context.clone());
 

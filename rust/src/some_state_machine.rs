@@ -94,11 +94,6 @@ impl FiniteStateMachine for SomeStateMachine {
     }
 
     fn process(&mut self, delta: f64) -> Option<Self::StatesEnum> {
-        godot_print!(
-            "[some_state_machine::process()] - current state: {}",
-            self.current_state
-        );
-
         let Some(state) = self.states.get_mut(&self.current_state) else {
             godot_print!(
                 "[some_state_machine::process()] - could not get state: {}",
@@ -107,7 +102,11 @@ impl FiniteStateMachine for SomeStateMachine {
             return None;
         };
 
-        state.update(delta as f32)
+        state.process(delta as f32)
+    }
+
+    fn get_current_state(&self) -> Self::StatesEnum {
+        self.current_state.clone()
     }
 }
 
