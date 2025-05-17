@@ -8,6 +8,9 @@ pub trait State: std::fmt::Debug {
     type StatesEnum;
     type Context;
 
+    fn new(context: Self::Context) -> Self
+    where
+        Self: Sized;
     fn get_state_name(&self) -> Self::StatesEnum;
     fn next(&mut self) -> Option<Self::StatesEnum>;
     fn enter(&mut self);

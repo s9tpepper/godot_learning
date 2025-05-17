@@ -12,19 +12,17 @@ pub struct Walking {
     next_state: Option<MovementStates>,
 }
 
-impl Walking {
-    pub fn new(context: Gd<MovementContext>) -> Self {
+impl State for Walking {
+    type StatesEnum = MovementStates;
+    type Context = Gd<MovementContext>;
+
+    fn new(context: Self::Context) -> Self {
         Walking {
             context,
             elapsed: 0.,
             next_state: None,
         }
     }
-}
-
-impl State for Walking {
-    type StatesEnum = MovementStates;
-    type Context = Gd<MovementContext>;
 
     fn get_state_name(&self) -> Self::StatesEnum {
         MovementStates::Walking

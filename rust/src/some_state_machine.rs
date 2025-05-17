@@ -23,6 +23,13 @@ pub struct SomeStateMachine {
     current_state: MovementStates,
 }
 
+impl SomeStateMachine {
+    fn register_state(&mut self, state: DynState, states: &mut StateMap) {
+        let state_name = state.get_state_name();
+        states.insert(state_name, state);
+    }
+}
+
 impl FiniteStateMachine for SomeStateMachine {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
@@ -71,20 +78,8 @@ impl FiniteStateMachine for SomeStateMachine {
 
         let mut states: StateMap = HashMap::new();
 
-        // TODO: Make this macro to facilitate registering states
-        // register_states!(Idle, Walking);
-        // OR: make this a function in FiniteStateMachine to avoid
-        // the repetition
-
-        let idle = Idle::new(context.clone());
-        let state_name = idle.get_state_name();
-        let boxed = Box::new(idle) as DynState;
-        states.insert(state_name, boxed);
-
-        let walking = Walking::new(context.clone());
-        let state_name = walking.get_state_name();
-        let boxed = Box::new(walking) as DynState;
-        states.insert(state_name, boxed);
+        self.register_state(Box::new(Idle::new(context.clone())), &mut states);
+        self.register_state(Box::new(Walking::new(context.clone())), &mut states);
 
         states
     }

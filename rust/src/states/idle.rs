@@ -12,19 +12,17 @@ pub struct Idle {
     next_state: Option<MovementStates>,
 }
 
-impl Idle {
-    pub fn new(context: Gd<MovementContext>) -> Self {
+impl State for Idle {
+    type StatesEnum = MovementStates;
+    type Context = Gd<MovementContext>;
+
+    fn new(context: Self::Context) -> Self {
         Idle {
             context,
             elapsed: 0.,
             next_state: None,
         }
     }
-}
-
-impl State for Idle {
-    type StatesEnum = MovementStates;
-    type Context = Gd<MovementContext>;
 
     fn get_state_name(&self) -> Self::StatesEnum {
         MovementStates::Idle
