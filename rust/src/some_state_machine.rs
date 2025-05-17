@@ -5,7 +5,7 @@ use godot::{global::godot_print, obj::Gd};
 use crate::{
     finite_state_machine::FiniteStateMachine,
     player::MovementContext,
-    states::{State, idle::Idle, movement_states::MovementStates},
+    states::{State, idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
 type DynState = Box<dyn State<Context = Gd<MovementContext>, StatesEnum = MovementStates>>;
@@ -57,7 +57,13 @@ impl FiniteStateMachine for SomeStateMachine {
     }
 
     fn set_current_state(&mut self, state: Self::StatesEnum) {
+        godot_print!("SomeStateMachine::set_current_state({state})");
         self.current_state = state;
+
+        godot_print!(
+            "SomeStateMachine::set_current_state(): {}",
+            self.current_state
+        );
     }
 
     fn setup_states(&mut self, context: Self::Context) -> StateMap {
@@ -70,16 +76,15 @@ impl FiniteStateMachine for SomeStateMachine {
         // OR: make this a function in FiniteStateMachine to avoid
         // the repetition
 
-        let mut idle = Idle::new(context.clone());
+        let idle = Idle::new(context.clone());
         let state_name = idle.get_state_name();
         let boxed = Box::new(idle) as DynState;
         states.insert(state_name, boxed);
 
-        // TODO: Update Walking state with changes to Idle state
-        // let mut walking = Walking::new(context.clone());
-        // let state_name = walking.get_state_name();
-        // let boxed = Box::new(walking) as Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>;
-        // states.insert(state_name, boxed);
+        let walking = Walking::new(context.clone());
+        let state_name = walking.get_state_name();
+        let boxed = Box::new(walking) as DynState;
+        states.insert(state_name, boxed);
 
         states
     }
@@ -90,9 +95,14 @@ impl FiniteStateMachine for SomeStateMachine {
 
     fn set_transitioning(&mut self, in_transition: bool) {
         self.transitioning = in_transition;
+        godot_print!("SomeStateMachine.set_transitioning({in_transition})");
     }
 
     fn get_transitioning(&self) -> bool {
+        godot_print!(
+            "SomeStateMachine.get_transitioning(): {}",
+            self.transitioning
+        );
         self.transitioning
     }
 }

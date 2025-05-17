@@ -1,13 +1,15 @@
 #![allow(non_snake_case)]
 
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
-use godot::{classes::InputEvent, obj::Gd};
+use godot::{classes::InputEvent, global::godot_print, obj::Gd};
 
 use crate::states::State;
 
-pub trait FiniteStateMachine: std::fmt::Debug {
-    type StatesEnum: Clone + PartialEq + Eq + Hash;
+const STATE_ERROR: &str = "should_transition should always return state";
+
+pub trait FiniteStateMachine: Debug {
+    type StatesEnum: Clone + PartialEq + Eq + Hash + Debug;
     type Context;
 
     fn ready(&mut self);
@@ -60,16 +62,10 @@ pub trait FiniteStateMachine: std::fmt::Debug {
     where
         Self: Sized,
     {
-        let state = self.get_current_state();
-        let transitioning = self.get_transitioning();
-        let Some(current_state) = self.get_state(state) else {
-            return;
-        };
-
-        let next_state = current_state.next();
-        match next_state {
-            Some(new_state) if !transitioning => self.transition_to_state(new_state),
-            Some(_) | None => current_state.process(delta as f32),
+        match self.should_transition() {
+            (true, next_state, _) => self.transition_to_state(next_state.expect(STATE_ERROR)),
+            (false, _, Some(current_state)) => current_state.process(delta as f32),
+            (false, _, None) => {}
         }
     }
 
@@ -77,16 +73,41 @@ pub trait FiniteStateMachine: std::fmt::Debug {
     where
         Self: Sized,
     {
+        match self.should_transition() {
+            (true, next_state, _) => self.transition_to_state(next_state.expect(STATE_ERROR)),
+            (false, _, Some(current_state)) => current_state.process_physics(delta as f32),
+            (false, _, None) => {}
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn should_transition(
+        &mut self,
+    ) -> (
+        bool,
+        Option<Self::StatesEnum>,
+        Option<
+            &mut Box<
+                dyn State<
+                        StatesEnum = <Self as FiniteStateMachine>::StatesEnum,
+                        Context = <Self as FiniteStateMachine>::Context,
+                    >,
+            >,
+        >,
+    )
+    where
+        Self: Sized,
+    {
         let state = self.get_current_state();
         let transitioning = self.get_transitioning();
-        let Some(current_state) = self.get_state(state) else {
-            return;
+        let Some(current_state) = self.get_state(state.clone()) else {
+            return (false, None, None);
         };
 
         let next_state = current_state.next();
-        match next_state {
-            Some(new_state) if !transitioning => self.transition_to_state(new_state),
-            Some(_) | None => current_state.process_physics(delta as f32),
+        match next_state.clone() {
+            Some(new_state) if !transitioning && state != new_state => (true, next_state, None),
+            Some(_) | None => (false, None, Some(current_state)),
         }
     }
 
@@ -95,9 +116,13 @@ pub trait FiniteStateMachine: std::fmt::Debug {
         Self: Sized,
     {
         self.set_transitioning(true);
-
         let state = self.get_current_state();
-        let Some(current_state) = self.get_state(state) else {
+
+        let Some(current_state) = self.get_state(state.clone()) else {
+            godot_print!(
+                "FiniteStateMachine::transition_to_state():: Unable to get state: {:?}",
+                state
+            );
             return;
         };
 
@@ -105,7 +130,11 @@ pub trait FiniteStateMachine: std::fmt::Debug {
         self.set_current_state(next_state);
 
         let state = self.get_current_state();
-        let Some(current_state) = self.get_state(state) else {
+        let Some(current_state) = self.get_state(state.clone()) else {
+            godot_print!(
+                "FiniteStateMachine::transition_to_state():: Unable to get state: {:?}",
+                state
+            );
             return;
         };
         current_state.enter();

@@ -31,10 +31,12 @@ impl State for Idle {
     }
 
     fn next(&mut self) -> Option<Self::StatesEnum> {
-        self.next_state.take()
+        self.next_state.clone()
     }
 
     fn enter(&mut self) {
+        self.next_state = Some(MovementStates::Idle);
+
         godot_print!("Implement the enter logic for Idle state");
 
         godot_print!(
@@ -48,6 +50,8 @@ impl State for Idle {
     }
 
     fn process(&mut self, delta: f32) {
+        godot_print!("idle::process()");
+
         self.elapsed += delta;
 
         if self.elapsed < 1. {
@@ -60,6 +64,9 @@ impl State for Idle {
     fn process_physics(&mut self, _delta: f32) {}
 
     fn exit(&mut self) {
-        todo!()
+        godot_print!("Exiting Idle state...");
+
+        self.elapsed = 0.;
+        self.next_state = Some(MovementStates::Idle);
     }
 }

@@ -42,6 +42,9 @@ impl ICharacterBody3D for Player3D {
 
     // Called every frame.
     fn process(&mut self, delta: f64) {
+        godot_print!(
+            "FRAME START -------------------------------------------- Player3D::process()"
+        );
         let Some(ref mut machine) = self.state_machine else {
             godot_print!("Unable to get state machine reference");
             return;
