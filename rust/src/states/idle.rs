@@ -1,6 +1,6 @@
 use godot::{global::godot_print, obj::Gd};
 
-use crate::player::{Fsm, FsmHelper, MovementContext};
+use crate::player::MovementContext;
 
 use super::{State, StateUpdates, movement_states::MovementStates};
 
@@ -8,18 +8,16 @@ use super::{State, StateUpdates, movement_states::MovementStates};
 pub struct Idle {
     #[allow(unused)]
     context: Gd<MovementContext>,
-
-    state_machine: Option<Fsm<Gd<MovementContext>, MovementStates>>,
-
     elapsed: f32,
+    next_state: Option<MovementStates>,
 }
 
 impl Idle {
     pub fn new(context: Gd<MovementContext>) -> Self {
         Idle {
             context,
-            state_machine: None,
             elapsed: 0.,
+            next_state: None,
         }
     }
 }
@@ -28,10 +26,6 @@ impl State for Idle {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context, Self::StatesEnum>) {
-        self.state_machine = Some(state_machine);
-    }
-
     fn get_state_name(&self) -> Self::StatesEnum {
         MovementStates::Idle
     }
@@ -39,6 +33,10 @@ impl State for Idle {
 
 impl StateUpdates for Idle {
     type StatesEnum = MovementStates;
+
+    fn next(&mut self) -> Option<Self::StatesEnum> {
+        self.next_state.take()
+    }
 
     fn enter(&mut self) {
         godot_print!("Implement the enter logic for Idle state");
@@ -49,19 +47,21 @@ impl StateUpdates for Idle {
         );
     }
 
-    fn process(&mut self, delta: f32) -> Option<Self::StatesEnum> {
+    fn input(&mut self, _event: Gd<godot::classes::InputEvent>) {
+        todo!("Implement input handling for Idle state");
+    }
+
+    fn process(&mut self, delta: f32) {
         self.elapsed += delta;
 
         if self.elapsed < 1. {
-            return Some(MovementStates::Idle);
+            return;
         }
 
-        Some(MovementStates::Walking)
+        self.next_state = Some(MovementStates::Walking);
     }
 
-    fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
-        Some(MovementStates::Walking)
-    }
+    fn process_physics(&mut self, _delta: f32) {}
 
     fn exit(&mut self) {
         todo!()

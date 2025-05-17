@@ -1,6 +1,5 @@
+use godot::{classes::InputEvent, obj::Gd};
 use movement_states::MovementStates;
-
-use crate::player::FsmHelper;
 
 pub mod idle;
 pub mod movement_states;
@@ -11,15 +10,16 @@ pub trait State {
     type Context;
 
     fn get_state_name(&self) -> Self::StatesEnum;
-    fn set_state_machine(&mut self, state_machine: FsmHelper<Self::Context, Self::StatesEnum>);
 }
 
 pub trait StateUpdates: std::fmt::Debug {
     type StatesEnum;
 
+    fn next(&mut self) -> Option<Self::StatesEnum>;
     fn enter(&mut self);
-    fn process(&mut self, delta: f32) -> Option<Self::StatesEnum>;
-    fn process_physics(&mut self, delta: f32) -> Option<Self::StatesEnum>;
+    fn input(&mut self, event: Gd<InputEvent>);
+    fn process(&mut self, delta: f32);
+    fn process_physics(&mut self, delta: f32);
     fn exit(&mut self);
 }
 
@@ -32,15 +32,23 @@ impl Default for Box<dyn StateUpdates<StatesEnum = MovementStates>> {
 impl StateUpdates for () {
     type StatesEnum = MovementStates;
 
+    fn next(&mut self) -> Option<Self::StatesEnum> {
+        todo!()
+    }
+
     fn enter(&mut self) {
         todo!()
     }
 
-    fn process(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+    fn input(&mut self, _event: Gd<InputEvent>) {
         todo!()
     }
 
-    fn process_physics(&mut self, _delta: f32) -> Option<Self::StatesEnum> {
+    fn process(&mut self, _delta: f32) {
+        todo!()
+    }
+
+    fn process_physics(&mut self, _delta: f32) {
         todo!()
     }
 
