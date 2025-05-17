@@ -43,13 +43,6 @@ impl FiniteStateMachine for SomeStateMachine {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn get_states_map(&mut self) -> &mut StateMap
-    where
-        Self: Sized,
-    {
-        &mut self.states
-    }
-
     fn ready(&mut self) {
         godot_print!("[SomeStateMachine::ready()]");
 
@@ -72,16 +65,6 @@ impl FiniteStateMachine for SomeStateMachine {
         godot_print!("[SomeStateMachine::ready()] - Switched to Idle");
     }
 
-    fn set_current_state(&mut self, state: Self::StatesEnum) {
-        godot_print!("SomeStateMachine::set_current_state({state})");
-        self.current_state = state;
-
-        godot_print!(
-            "SomeStateMachine::set_current_state(): {}",
-            self.current_state
-        );
-    }
-
     fn setup_states(&mut self, context: Self::Context) -> StateMap {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
@@ -93,20 +76,26 @@ impl FiniteStateMachine for SomeStateMachine {
         states
     }
 
+    fn get_states_map(&mut self) -> &mut StateMap
+    where
+        Self: Sized,
+    {
+        &mut self.states
+    }
+
+    fn set_current_state(&mut self, state: Self::StatesEnum) {
+        self.current_state = state;
+    }
+
     fn get_current_state(&self) -> Self::StatesEnum {
         self.current_state.clone()
     }
 
     fn set_transitioning(&mut self, in_transition: bool) {
         self.transitioning = in_transition;
-        godot_print!("SomeStateMachine.set_transitioning({in_transition})");
     }
 
     fn get_transitioning(&self) -> bool {
-        godot_print!(
-            "SomeStateMachine.get_transitioning(): {}",
-            self.transitioning
-        );
         self.transitioning
     }
 }

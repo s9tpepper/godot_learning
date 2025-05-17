@@ -34,13 +34,6 @@ impl State for Idle {
 
     fn enter(&mut self) {
         self.next_state = Some(MovementStates::Idle);
-
-        godot_print!("Implement the enter logic for Idle state");
-
-        godot_print!(
-            ">>> animation name {}",
-            self.context.bind_mut().get_walking_animation_name()
-        );
     }
 
     fn input(&mut self, _event: Gd<godot::classes::InputEvent>) {

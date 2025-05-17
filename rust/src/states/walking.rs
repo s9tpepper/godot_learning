@@ -34,12 +34,6 @@ impl State for Walking {
 
     fn enter(&mut self) {
         self.next_state = Some(MovementStates::Walking);
-        godot_print!("Implement the enter logic for Walking state");
-
-        godot_print!(
-            ">>> animation name {}",
-            self.context.bind_mut().get_walking_animation_name()
-        );
     }
 
     fn input(&mut self, _event: Gd<godot::classes::InputEvent>) {
@@ -47,6 +41,7 @@ impl State for Walking {
     }
 
     fn process(&mut self, delta: f32) {
+        godot_print!("walking::process()");
         self.elapsed += delta;
 
         if self.elapsed < 1. {
