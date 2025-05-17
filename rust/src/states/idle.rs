@@ -2,7 +2,7 @@ use godot::{global::godot_print, obj::Gd};
 
 use crate::player::MovementContext;
 
-use super::{State, StateUpdates, movement_states::MovementStates};
+use super::{State, movement_states::MovementStates};
 
 #[derive(Debug)]
 pub struct Idle {
@@ -29,10 +29,6 @@ impl State for Idle {
     fn get_state_name(&self) -> Self::StatesEnum {
         MovementStates::Idle
     }
-}
-
-impl StateUpdates for Idle {
-    type StatesEnum = MovementStates;
 
     fn next(&mut self) -> Option<Self::StatesEnum> {
         self.next_state.take()

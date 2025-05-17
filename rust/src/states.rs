@@ -1,20 +1,17 @@
 use godot::{classes::InputEvent, obj::Gd};
 use movement_states::MovementStates;
 
+use crate::player::MovementContext;
+
 pub mod idle;
 pub mod movement_states;
 pub mod walking;
 
-pub trait State {
+pub trait State: std::fmt::Debug {
     type StatesEnum;
     type Context;
 
     fn get_state_name(&self) -> Self::StatesEnum;
-}
-
-pub trait StateUpdates: std::fmt::Debug {
-    type StatesEnum;
-
     fn next(&mut self) -> Option<Self::StatesEnum>;
     fn enter(&mut self);
     fn input(&mut self, event: Gd<InputEvent>);
@@ -23,14 +20,19 @@ pub trait StateUpdates: std::fmt::Debug {
     fn exit(&mut self);
 }
 
-impl Default for Box<dyn StateUpdates<StatesEnum = MovementStates>> {
+impl Default for Box<dyn State<Context = Gd<MovementContext>, StatesEnum = MovementStates>> {
     fn default() -> Self {
         Box::new(())
     }
 }
 
-impl StateUpdates for () {
+impl State for () {
+    type Context = Gd<MovementContext>;
     type StatesEnum = MovementStates;
+
+    fn get_state_name(&self) -> Self::StatesEnum {
+        MovementStates::Idle
+    }
 
     fn next(&mut self) -> Option<Self::StatesEnum> {
         todo!()

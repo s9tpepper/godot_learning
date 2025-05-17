@@ -5,14 +5,14 @@ use godot::{global::godot_print, obj::Gd};
 use crate::{
     finite_state_machine::{FiniteStateMachine, StateMap},
     player::MovementContext,
-    states::{State, StateUpdates, idle::Idle, movement_states::MovementStates},
+    states::{State, idle::Idle, movement_states::MovementStates},
 };
 
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
     context: Option<Gd<MovementContext>>,
 
-    states: StateMap<Self>,
+    states: StateMap<Self, Gd<MovementContext>>,
     transitioning: bool,
 
     #[allow(unused)]
@@ -23,7 +23,7 @@ impl FiniteStateMachine for SomeStateMachine {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn get_states_map(&mut self) -> &mut StateMap<Self>
+    fn get_states_map(&mut self) -> &mut StateMap<Self, Self::Context>
     where
         Self: Sized,
     {
@@ -56,10 +56,10 @@ impl FiniteStateMachine for SomeStateMachine {
         self.current_state = state;
     }
 
-    fn setup_states(&mut self, context: Self::Context) -> StateMap<Self> {
+    fn setup_states(&mut self, context: Self::Context) -> StateMap<Self, Self::Context> {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
-        let mut states: StateMap<Self> = HashMap::new();
+        let mut states: StateMap<Self, Self::Context> = HashMap::new();
 
         // TODO: Make this macro to facilitate registering states
         // register_states!(Idle, Walking);
@@ -68,7 +68,8 @@ impl FiniteStateMachine for SomeStateMachine {
 
         let mut idle = Idle::new(context.clone());
         let state_name = idle.get_state_name();
-        let boxed = Box::new(idle) as Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>;
+        let boxed = Box::new(idle)
+            as Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>;
         states.insert(state_name, boxed);
 
         // TODO: Update Walking state with changes to Idle state

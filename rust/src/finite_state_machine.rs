@@ -4,10 +4,10 @@ use std::{collections::HashMap, hash::Hash};
 
 use godot::{classes::InputEvent, obj::Gd};
 
-use crate::states::StateUpdates;
+use crate::states::State;
 
-pub type StateMap<T: FiniteStateMachine> =
-    HashMap<T::StatesEnum, Box<dyn StateUpdates<StatesEnum = T::StatesEnum>>>;
+pub type StateMap<T: FiniteStateMachine, C> =
+    HashMap<T::StatesEnum, Box<dyn State<Context = C, StatesEnum = T::StatesEnum>>>;
 
 pub trait FiniteStateMachine: std::fmt::Debug {
     type StatesEnum: Clone + PartialEq + Eq + Hash;
@@ -17,19 +17,22 @@ pub trait FiniteStateMachine: std::fmt::Debug {
     fn setup_states(
         &mut self,
         context: Self::Context,
-    ) -> HashMap<Self::StatesEnum, Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>>;
+    ) -> HashMap<
+        Self::StatesEnum,
+        Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
+    >;
     fn get_current_state(&self) -> Self::StatesEnum;
     fn set_current_state(&mut self, state: Self::StatesEnum);
     fn set_transitioning(&mut self, in_transition: bool);
     fn get_transitioning(&self) -> bool;
-    fn get_states_map(&mut self) -> &mut StateMap<Self>
+    fn get_states_map(&mut self) -> &mut StateMap<Self, Self::Context>
     where
         Self: Sized;
 
     fn get_state(
         &mut self,
         state: Self::StatesEnum,
-    ) -> Option<&mut Box<dyn StateUpdates<StatesEnum = Self::StatesEnum>>>
+    ) -> Option<&mut Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>>
     where
         Self: Sized,
     {
