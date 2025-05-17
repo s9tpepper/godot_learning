@@ -5,12 +5,14 @@ use godot::prelude::*;
 use crate::finite_state_machine::FiniteStateMachine;
 use crate::some_state_machine::SomeStateMachine;
 
+pub type StateContext = Gd<MovementContext>;
+
 #[derive(GodotClass)]
 #[class(base=CharacterBody3D, init)]
 #[allow(unused)]
 pub struct Player3D {
     #[export]
-    context: Option<Gd<MovementContext>>,
+    context: Option<StateContext>,
     base: Base<CharacterBody3D>,
     state_machine: Option<SomeStateMachine>,
 }

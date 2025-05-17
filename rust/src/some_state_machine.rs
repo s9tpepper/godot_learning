@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 
-use godot::{global::godot_print, obj::Gd};
+use godot::global::godot_print;
 
 use crate::{
     finite_state_machine::FiniteStateMachine,
-    player::MovementContext,
+    player::StateContext,
     states::{State, idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
-type DynState = Box<dyn State<Context = Gd<MovementContext>, StatesEnum = MovementStates>>;
+type DynState = Box<dyn State<Context = StateContext, StatesEnum = MovementStates>>;
 type StateMap = HashMap<MovementStates, DynState>;
 
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
-    context: Option<Gd<MovementContext>>,
+    context: StateContext,
 
     states: StateMap,
 
@@ -24,9 +24,9 @@ pub struct SomeStateMachine {
 }
 
 impl SomeStateMachine {
-    pub fn new(context: Gd<MovementContext>) -> Self {
+    pub fn new(context: StateContext) -> Self {
         SomeStateMachine {
-            context: Some(context),
+            context,
             states: HashMap::default(),
             current_state: MovementStates::Idle,
             transitioning: false,
@@ -41,19 +41,12 @@ impl SomeStateMachine {
 
 impl FiniteStateMachine for SomeStateMachine {
     type StatesEnum = MovementStates;
-    type Context = Gd<MovementContext>;
+    type Context = StateContext;
 
     fn ready(&mut self) {
         godot_print!("[SomeStateMachine::ready()]");
 
-        let Some(context) = &self.context else {
-            godot_print!("[SomeStateMachine::ready()] - No context found");
-            return;
-        };
-
-        godot_print!("context: {context:?}");
-
-        self.states = self.setup_states(context.clone());
+        self.states = self.setup_states(self.context.clone());
 
         godot_print!(
             "[SomeStateMachine::ready()] - Set up states. {:?}",
