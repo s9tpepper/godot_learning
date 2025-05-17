@@ -35,6 +35,13 @@ pub trait FiniteStateMachine: Debug {
     where
         Self: Sized;
 
+    // fn register_state() {
+    //     // let idle = Idle::new(context.clone());
+    //     // let state_name = idle.get_state_name();
+    //     // let boxed = Box::new(idle) as DynState;
+    //     // states.insert(state_name, boxed);
+    // }
+
     fn get_state(
         &mut self,
         state: Self::StatesEnum,
