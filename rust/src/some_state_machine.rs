@@ -3,16 +3,20 @@ use std::collections::HashMap;
 use godot::{global::godot_print, obj::Gd};
 
 use crate::{
-    finite_state_machine::{FiniteStateMachine, StateMap},
+    finite_state_machine::FiniteStateMachine,
     player::MovementContext,
     states::{State, idle::Idle, movement_states::MovementStates},
 };
+
+type DynState = Box<dyn State<Context = Gd<MovementContext>, StatesEnum = MovementStates>>;
+type StateMap = HashMap<MovementStates, DynState>;
 
 #[derive(Debug, Default)]
 pub struct SomeStateMachine {
     context: Option<Gd<MovementContext>>,
 
-    states: StateMap<Self, Gd<MovementContext>>,
+    states: StateMap,
+
     transitioning: bool,
 
     #[allow(unused)]
@@ -23,7 +27,7 @@ impl FiniteStateMachine for SomeStateMachine {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
 
-    fn get_states_map(&mut self) -> &mut StateMap<Self, Self::Context>
+    fn get_states_map(&mut self) -> &mut StateMap
     where
         Self: Sized,
     {
@@ -56,10 +60,10 @@ impl FiniteStateMachine for SomeStateMachine {
         self.current_state = state;
     }
 
-    fn setup_states(&mut self, context: Self::Context) -> StateMap<Self, Self::Context> {
+    fn setup_states(&mut self, context: Self::Context) -> StateMap {
         godot_print!("[FiniteStateMachine::setup_states()]");
 
-        let mut states: StateMap<Self, Self::Context> = HashMap::new();
+        let mut states: StateMap = HashMap::new();
 
         // TODO: Make this macro to facilitate registering states
         // register_states!(Idle, Walking);
@@ -68,8 +72,7 @@ impl FiniteStateMachine for SomeStateMachine {
 
         let mut idle = Idle::new(context.clone());
         let state_name = idle.get_state_name();
-        let boxed = Box::new(idle)
-            as Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>;
+        let boxed = Box::new(idle) as DynState;
         states.insert(state_name, boxed);
 
         // TODO: Update Walking state with changes to Idle state

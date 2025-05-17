@@ -6,14 +6,12 @@ use godot::{classes::InputEvent, obj::Gd};
 
 use crate::states::State;
 
-pub type StateMap<T: FiniteStateMachine, C> =
-    HashMap<T::StatesEnum, Box<dyn State<Context = C, StatesEnum = T::StatesEnum>>>;
-
 pub trait FiniteStateMachine: std::fmt::Debug {
     type StatesEnum: Clone + PartialEq + Eq + Hash;
     type Context;
 
     fn ready(&mut self);
+    #[allow(clippy::type_complexity)]
     fn setup_states(
         &mut self,
         context: Self::Context,
@@ -25,7 +23,13 @@ pub trait FiniteStateMachine: std::fmt::Debug {
     fn set_current_state(&mut self, state: Self::StatesEnum);
     fn set_transitioning(&mut self, in_transition: bool);
     fn get_transitioning(&self) -> bool;
-    fn get_states_map(&mut self) -> &mut StateMap<Self, Self::Context>
+    #[allow(clippy::type_complexity)]
+    fn get_states_map(
+        &mut self,
+    ) -> &mut HashMap<
+        Self::StatesEnum,
+        Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
+    >
     where
         Self: Sized;
 
