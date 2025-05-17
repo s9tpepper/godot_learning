@@ -24,6 +24,15 @@ pub struct SomeStateMachine {
 }
 
 impl SomeStateMachine {
+    pub fn new(context: Gd<MovementContext>) -> Self {
+        SomeStateMachine {
+            context: Some(context),
+            states: HashMap::default(),
+            current_state: MovementStates::Idle,
+            transitioning: false,
+        }
+    }
+
     fn register_state(&mut self, state: DynState, states: &mut StateMap) {
         let state_name = state.get_state_name();
         states.insert(state_name, state);
@@ -99,16 +108,5 @@ impl FiniteStateMachine for SomeStateMachine {
             self.transitioning
         );
         self.transitioning
-    }
-}
-
-impl SomeStateMachine {
-    pub fn new(context: Gd<MovementContext>) -> Self {
-        SomeStateMachine {
-            context: Some(context),
-            states: HashMap::default(),
-            current_state: MovementStates::Idle,
-            transitioning: false,
-        }
     }
 }
