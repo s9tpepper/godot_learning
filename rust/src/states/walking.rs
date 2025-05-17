@@ -28,7 +28,11 @@ impl State for Walking {
         MovementStates::Walking
     }
 
-    fn next(&mut self) -> Option<Self::StatesEnum> {
+    fn set_next_state(&mut self, state: Self::StatesEnum) {
+        self.next_state = Some(state);
+    }
+
+    fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
         self.next_state.clone()
     }
 
@@ -48,7 +52,7 @@ impl State for Walking {
             return;
         }
 
-        self.next_state = Some(MovementStates::Idle);
+        self.set_next_state(MovementStates::Idle);
     }
 
     fn process_physics(&mut self, _delta: f32) {}
@@ -57,6 +61,6 @@ impl State for Walking {
         godot_print!("Exiting Walking state");
 
         self.elapsed = 0.;
-        self.next_state = Some(MovementStates::Walking);
+        self.set_next_state(MovementStates::Walking);
     }
 }

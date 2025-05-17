@@ -28,12 +28,16 @@ impl State for Idle {
         MovementStates::Idle
     }
 
-    fn next(&mut self) -> Option<Self::StatesEnum> {
+    fn set_next_state(&mut self, state: Self::StatesEnum) {
+        self.next_state = Some(state);
+    }
+
+    fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
         self.next_state.clone()
     }
 
     fn enter(&mut self) {
-        self.next_state = Some(MovementStates::Idle);
+        self.set_next_state(MovementStates::Idle);
     }
 
     fn input(&mut self, _event: Gd<godot::classes::InputEvent>) {
@@ -49,7 +53,7 @@ impl State for Idle {
             return;
         }
 
-        self.next_state = Some(MovementStates::Walking);
+        self.set_next_state(MovementStates::Walking);
     }
 
     fn process_physics(&mut self, _delta: f32) {}
@@ -58,6 +62,6 @@ impl State for Idle {
         godot_print!("Exiting Idle state...");
 
         self.elapsed = 0.;
-        self.next_state = Some(MovementStates::Idle);
+        self.set_next_state(MovementStates::Idle);
     }
 }

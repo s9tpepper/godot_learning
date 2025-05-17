@@ -12,7 +12,8 @@ pub trait State: std::fmt::Debug {
     where
         Self: Sized;
     fn get_state_name(&self) -> Self::StatesEnum;
-    fn next(&mut self) -> Option<Self::StatesEnum>;
+    fn set_next_state(&mut self, state: Self::StatesEnum);
+    fn get_next_state(&mut self) -> Option<Self::StatesEnum>;
     fn enter(&mut self);
     fn input(&mut self, event: Gd<InputEvent>);
     fn process(&mut self, delta: f32);
