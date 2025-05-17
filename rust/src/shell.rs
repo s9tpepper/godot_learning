@@ -25,7 +25,7 @@ impl INode3D for Shell {
             .and_then(|mut root| {
                 scene
                     .instantiate()
-                    .map(|node| root.call_deferred("add_child", &[node.to_variant()]))
+                    .map(|player_node| root.call_deferred("add_child", &[player_node.to_variant()]))
             });
 
         godot_print!("Finish start up");

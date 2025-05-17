@@ -1,5 +1,6 @@
 use godot::classes::notify::Node3DNotification;
 use godot::classes::{CharacterBody3D, ICharacterBody3D, InputEvent};
+use godot::obj::WithBaseField;
 use godot::prelude::*;
 
 use crate::finite_state_machine::FiniteStateMachine;
@@ -27,25 +28,44 @@ pub struct MovementContext {
     pub player_scene: NodePath,
 
     #[export]
+    pub pivot: NodePath,
+
+    #[export]
+    pub animation_player: GString,
+
+    #[export]
     pub walking_animation_name: GString,
+
+    #[export(range=(0.01, 400.0))]
+    pub movement_speed: f32,
 }
 
 #[godot_api]
 impl ICharacterBody3D for Player3D {
     // Called when the node is ready in the scene tree.
     fn ready(&mut self) {
+        let base = self.base().clone();
+
         if let Some(context) = &self.context {
-            let mut state_machine = SomeStateMachine::new(context.clone());
+            godot_print!("[Player3D::process()] Starting state machine...");
+
+            let mut state_machine = SomeStateMachine::new(context.clone(), base.clone());
             state_machine.ready();
 
             self.state_machine = Some(state_machine);
+            godot_print!(
+                "[Player3D::process()] Set self.state_machine to {:?}",
+                self.state_machine
+            );
+        } else {
+            godot_print!("tree: {base:?}, context: {:?}", self.context);
         }
     }
 
     // Called every frame.
     fn process(&mut self, delta: f64) {
         let Some(ref mut machine) = self.state_machine else {
-            godot_print!("Unable to get state machine reference");
+            godot_print!("[Player3D::process()] Unable to get state machine reference");
             return;
         };
 
@@ -55,7 +75,7 @@ impl ICharacterBody3D for Player3D {
     // Called every physics frame.
     fn physics_process(&mut self, delta: f64) {
         let Some(ref mut machine) = self.state_machine else {
-            godot_print!("Unable to get state machine reference");
+            godot_print!("[Player3D::physics_process()] Unable to get state machine reference");
             return;
         };
 
@@ -70,7 +90,7 @@ impl ICharacterBody3D for Player3D {
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
         let Some(ref mut machine) = self.state_machine else {
-            godot_print!("Unable to get state machine reference");
+            godot_print!("[Player3D::input()] Unable to get state machine reference");
             return;
         };
 

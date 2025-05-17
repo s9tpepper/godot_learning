@@ -66,7 +66,11 @@ struct Movement {
     target_jump_height: f32,
 }
 
-fn rotate_target_art(target_mesh: &mut Gd<Node3D>, instant_velocity: Vector3, _pivot: &Gd<Node3D>) {
+pub fn rotate_target_art(
+    target_mesh: &mut Gd<Node3D>,
+    instant_velocity: Vector3,
+    _pivot: &Gd<Node3D>,
+) {
     // Only rotate the model if there is movement
     if instant_velocity == Vector3::ZERO {
         return;
@@ -192,7 +196,7 @@ impl INode3D for Movement {
 
         self.instant_velocity = Vector3::ZERO;
 
-        self.apply_ground_movement(&input, delta);
+        // self.apply_ground_movement(&input, delta);
         self.apply_jump(&input, node, delta);
         // self.apply_animations();
 

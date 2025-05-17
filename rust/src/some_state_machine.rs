@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use godot::global::godot_print;
+use godot::{
+    classes::{CharacterBody3D, SceneTree},
+    global::godot_print,
+    obj::Gd,
+};
 
 use crate::{
     finite_state_machine::FiniteStateMachine,
@@ -11,9 +15,10 @@ use crate::{
 type DynState = Box<dyn State<Context = StateContext, StatesEnum = MovementStates>>;
 type StateMap = HashMap<MovementStates, DynState>;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SomeStateMachine {
     context: StateContext,
+    player_3_d: Gd<CharacterBody3D>,
 
     states: StateMap,
 
@@ -24,9 +29,10 @@ pub struct SomeStateMachine {
 }
 
 impl SomeStateMachine {
-    pub fn new(context: StateContext) -> Self {
+    pub fn new(context: StateContext, player_3_d: Gd<CharacterBody3D>) -> Self {
         SomeStateMachine {
             context,
+            player_3_d,
             states: HashMap::default(),
             current_state: MovementStates::Idle,
             transitioning: false,
@@ -63,9 +69,18 @@ impl FiniteStateMachine for SomeStateMachine {
 
         let mut states: StateMap = HashMap::new();
 
-        self.register_state(Box::new(Idle::new(context.clone())), &mut states);
-        self.register_state(Box::new(Walking::new(context.clone())), &mut states);
+        self.register_state(
+            Box::new(Idle::new(context.clone(), self.player_3_d.clone())),
+            &mut states,
+        );
+        godot_print!("Created idle state");
 
+        self.register_state(
+            Box::new(Walking::new(context.clone(), self.player_3_d.clone())),
+            &mut states,
+        );
+        // godot_print!("Created walking state");
+        //
         states
     }
 

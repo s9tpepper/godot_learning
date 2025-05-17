@@ -5,7 +5,10 @@
 [sub_resource type="MovementContext" id="MovementContext_0f027"]
 player = NodePath(".")
 player_scene = NodePath("Player")
+pivot = NodePath("Pivot")
+animation_player = "AnimationPlayer"
 walking_animation_name = "mixamo_com"
+movement_speed = 3.0
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2c62f"]
 radius = 0.341212

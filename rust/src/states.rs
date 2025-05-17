@@ -1,4 +1,7 @@
-use godot::{classes::InputEvent, obj::Gd};
+use godot::{
+    classes::{CharacterBody3D, InputEvent},
+    obj::Gd,
+};
 
 pub mod idle;
 pub mod movement_states;
@@ -8,7 +11,8 @@ pub trait State: std::fmt::Debug {
     type StatesEnum;
     type Context;
 
-    fn new(context: Self::Context) -> Self
+    // TODO: Fix the second argument to a generic type, not a concrete type
+    fn new(context: Self::Context, subject: Gd<CharacterBody3D>) -> Self
     where
         Self: Sized;
     fn get_state_name(&self) -> Self::StatesEnum;

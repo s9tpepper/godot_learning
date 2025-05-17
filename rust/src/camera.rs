@@ -9,7 +9,7 @@ use godot::prelude::*;
 #[derive(GodotClass)]
 #[class(base=Node3D, init)]
 #[allow(unused)]
-struct Camera {
+pub struct Camera {
     base: Base<Node3D>,
 
     // #[export(range=(0.01, 100.0))]
