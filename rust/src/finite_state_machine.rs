@@ -104,7 +104,7 @@ pub trait FiniteStateMachine: Debug {
             return (false, None, None);
         };
 
-        let next_state = current_state.next();
+        let next_state = current_state.get_next_state();
         match next_state.clone() {
             Some(new_state) if !transitioning && state != new_state => (true, next_state, None),
             Some(_) | None => (false, None, Some(current_state)),
