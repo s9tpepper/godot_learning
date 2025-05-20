@@ -13,6 +13,7 @@ static ACTIONS: LazyLock<Actions> = LazyLock::new(Actions::default);
 #[derive(GodotClass)]
 #[class(base=Node3D, init)]
 #[allow(unused)]
+/// Controls mouse going from Confined to Captured state
 struct GameMouse {}
 
 #[godot_api]

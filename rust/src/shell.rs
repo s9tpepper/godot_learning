@@ -17,15 +17,21 @@ struct Shell {
 #[godot_api]
 impl INode3D for Shell {
     fn ready(&mut self) {
-        let scene = load::<PackedScene>("res://player.tscn");
+        let mut level = load::<PackedScene>("res://level.tscn")
+            .instantiate()
+            .unwrap();
 
+        let player = load::<PackedScene>("res://player.tscn")
+            .instantiate()
+            .unwrap();
+
+        #[allow(clippy::option_map_unit_fn)]
         self.base_mut()
             .get_tree()
             .and_then(|tree| tree.get_root())
-            .and_then(|mut root| {
-                scene
-                    .instantiate()
-                    .map(|player_node| root.call_deferred("add_child", &[player_node.to_variant()]))
+            .map(|mut root| {
+                level.call_deferred("add_child", &[player.to_variant()]);
+                root.call_deferred("add_child", &[level.to_variant()]);
             });
 
         godot_print!("Finish start up");

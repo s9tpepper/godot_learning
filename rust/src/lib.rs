@@ -2,6 +2,7 @@ use godot::init::gdextension;
 
 mod actions;
 mod camera;
+mod clickable_object;
 mod debug;
 mod finite_state_machine;
 mod motion_signals;
