@@ -66,67 +66,7 @@ struct Movement {
     target_jump_height: f32,
 }
 
-pub fn rotate_target_art(
-    target_mesh: &mut Gd<Node3D>,
-    instant_velocity: Vector3,
-    _pivot: &Gd<Node3D>,
-) {
-    // Only rotate the model if there is movement
-    if instant_velocity == Vector3::ZERO {
-        return;
-    }
-
-    let current_basis = target_mesh.get_basis();
-    // let look_at = Vector3::new(0., 0., instant_velocity.z);
-    let target_basis = Basis::looking_at(instant_velocity, Vector3::UP, true);
-    let interpolated = current_basis.slerp(&target_basis, 0.2);
-    target_mesh.set_basis(interpolated);
-}
-
 impl Movement {
-    fn apply_ground_movement(&mut self, input: &Gd<Input>, _delta: f64) {
-        let Some(pivot) = &self.get_pivot() else {
-            godot_print!("Could not find pivot");
-            return;
-        };
-
-        let pivot_y = pivot.get_global_rotation().y;
-
-        let movement_vector = input
-            .get_vector(
-                ACTIONS.right,
-                ACTIONS.left,
-                ACTIONS.backward,
-                ACTIONS.forward,
-            )
-            .rotated(-pivot_y);
-
-        let Some(player) = &mut self.target else {
-            godot_print!("Could not find target");
-            return;
-        };
-
-        self.instant_velocity =
-            Vector3::new(movement_vector.x, 0., movement_vector.y) * self.movement_speed;
-
-        player.set_velocity(self.instant_velocity);
-        player.move_and_slide();
-
-        if self.instant_velocity != Vector3::ZERO && self.motion_signals.is_some() {
-            if let Some(mut motion_signals) = self.get_motion_signals() {
-                motion_signals.signals().walking().emit(true);
-            }
-        } else if self.motion_signals.is_some() && self.instant_velocity == Vector3::ZERO {
-            if let Some(mut motion_signals) = self.get_motion_signals() {
-                motion_signals.signals().walking().emit(false);
-            }
-        }
-
-        if let Some(target_node) = &mut self.target_node {
-            rotate_target_art(target_node, self.instant_velocity, pivot);
-        }
-    }
-
     fn apply_jump(&mut self, input: &Gd<Input>, node: &mut Gd<CharacterBody3D>, delta: f64) {
         let settings = ProjectSettings::singleton();
         let g = settings.get_setting(GRAVITY_VECTOR_SETTINGS_PATH);

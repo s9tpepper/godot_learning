@@ -6,9 +6,9 @@ use godot::classes::{
 };
 use godot::obj::WithBaseField;
 use godot::prelude::*;
-use rand::{Rng, rng};
+use rand::Rng;
 
-use crate::finite_state_machine::FiniteStateMachine;
+use crate::common::finite_state_machine::FiniteStateMachine;
 use crate::some_state_machine::SomeStateMachine;
 
 pub type StateContext = Gd<MovementContext>;

@@ -4,7 +4,7 @@ use std::{collections::HashMap, fmt::Debug, hash::Hash};
 
 use godot::{classes::InputEvent, global::godot_print, obj::Gd};
 
-use crate::states::State;
+use super::states::State;
 
 const STATE_ERROR: &str = "should_transition should always return state";
 

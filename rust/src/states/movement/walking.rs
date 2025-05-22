@@ -7,9 +7,13 @@ use godot::{
     obj::Gd,
 };
 
-use crate::{actions::Actions, camera::Camera, player::MovementContext};
+use crate::{
+    actions::Actions,
+    common::{camera::Camera, states::State},
+    player::MovementContext,
+};
 
-use super::{State, movement_states::MovementStates};
+use super::movement_states::MovementStates;
 
 static ACTIONS: LazyLock<Actions> = LazyLock::new(Actions::default);
 

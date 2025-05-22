@@ -1,15 +1,11 @@
 use std::collections::HashMap;
 
-use godot::{
-    classes::{CharacterBody3D, SceneTree},
-    global::godot_print,
-    obj::Gd,
-};
+use godot::{classes::CharacterBody3D, global::godot_print, obj::Gd};
 
 use crate::{
-    finite_state_machine::FiniteStateMachine,
+    common::{finite_state_machine::FiniteStateMachine, states::State},
     player::StateContext,
-    states::{State, idle::Idle, movement_states::MovementStates, walking::Walking},
+    states::movement::{idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
 type DynState = Box<dyn State<Context = StateContext, StatesEnum = MovementStates>>;
