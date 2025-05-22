@@ -18,11 +18,11 @@ struct Shell {
 #[godot_api]
 impl INode3D for Shell {
     fn ready(&mut self) {
-        let mut level = load::<PackedScene>("res://level.tscn")
+        let mut level = load::<PackedScene>("res://scenes/level.tscn")
             .instantiate()
             .unwrap();
 
-        let player = load::<PackedScene>("res://player.tscn")
+        let player = load::<PackedScene>("res://scenes/player/player.tscn")
             .instantiate()
             .unwrap();
 

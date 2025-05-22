@@ -6,6 +6,7 @@ use godot::classes::{
 };
 use godot::obj::WithBaseField;
 use godot::prelude::*;
+use rand::{Rng, rng};
 
 use crate::finite_state_machine::FiniteStateMachine;
 use crate::some_state_machine::SomeStateMachine;
@@ -53,22 +54,32 @@ pub struct MovementContext {
     pub footstep: NodePath,
 }
 
-#[derive(GodotClass)]
-#[class(base=AudioStreamPlayer3D, init)]
-#[allow(unused)]
-struct Footsteps {
-    base: Base<AudioStreamPlayer3D>,
-}
-
-#[godot_api]
-impl Footsteps {
-    #[func]
-    pub fn footstep() {}
-}
-
 #[godot_api]
 impl Player3D {
     #[func]
+    fn footstep(&self) {
+        let base = self.base().clone();
+        if !base.is_on_floor() {
+            return;
+        }
+
+        let Some(context) = self.get_context() else {
+            return;
+        };
+
+        let Some(ref mut audio_stream_player_3d) =
+            base.try_get_node_as::<AudioStreamPlayer3D>(&context.bind().get_footstep())
+        else {
+            return;
+        };
+
+        let mut rng = rand::rng();
+        let pitch_scale = rng.random_range(0.8..1.2);
+        audio_stream_player_3d.set_pitch_scale(pitch_scale);
+
+        audio_stream_player_3d.play();
+    }
+
     /// This function does cool collision stuff
     fn check_collisions_by_dot_product(&mut self) {
         let base = self.base().clone();
