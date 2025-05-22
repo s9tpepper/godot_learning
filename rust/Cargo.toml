@@ -9,5 +9,5 @@ crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 [dependencies]
 anyhow = "1.0.98"
 # godot = "0.2.4"
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master" }
+godot = { git = "https://github.com/godot-rust/gdext", branch = "master", features = ["register-docs"] }
 rand = "0.9.1"

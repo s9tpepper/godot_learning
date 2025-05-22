@@ -57,6 +57,7 @@ pub struct MovementContext {
 #[godot_api]
 impl Player3D {
     #[func]
+    /// Plays a footstep sound using the footstep node path from the MovementContext
     fn footstep(&self) {
         let base = self.base().clone();
         if !base.is_on_floor() {
@@ -80,7 +81,6 @@ impl Player3D {
         audio_stream_player_3d.play();
     }
 
-    /// This function does cool collision stuff
     fn check_collisions_by_dot_product(&mut self) {
         let base = self.base().clone();
         let Some(mut tree) = base.get_tree() else {
