@@ -1,7 +1,7 @@
 use godot::classes::base_material_3d::Feature;
 use godot::classes::notify::Node3DNotification;
 use godot::classes::{
-    Camera3D, CharacterBody3D, CsgMesh3D, ICharacterBody3D, InputEvent,
+    AudioStreamPlayer3D, Camera3D, CharacterBody3D, CsgMesh3D, ICharacterBody3D, InputEvent,
     PhysicsRayQueryParameters3D, StandardMaterial3D,
 };
 use godot::obj::WithBaseField;
@@ -47,9 +47,29 @@ pub struct MovementContext {
 
     #[export(range=(0.01, 400.0))]
     pub movement_speed: f32,
+
+    #[export]
+    /// Points to AudioStreamPlayer3D to play a footstep sound
+    pub footstep: NodePath,
 }
 
+#[derive(GodotClass)]
+#[class(base=AudioStreamPlayer3D, init)]
+#[allow(unused)]
+struct Footsteps {
+    base: Base<AudioStreamPlayer3D>,
+}
+
+#[godot_api]
+impl Footsteps {
+    #[func]
+    pub fn footstep() {}
+}
+
+#[godot_api]
 impl Player3D {
+    #[func]
+    /// This function does cool collision stuff
     fn check_collisions_by_dot_product(&mut self) {
         let base = self.base().clone();
         let Some(mut tree) = base.get_tree() else {
@@ -80,13 +100,6 @@ impl Player3D {
             let direction = node_3d.get_global_position() - player_skin.get_global_position();
 
             let angle_to_item = looking.angle_to(direction.normalized());
-            // godot_print!(
-            //     "angle_to_item: {}, item: {}, distance: {}, class: {}",
-            //     angle_to_item.to_degrees(),
-            //     item.get_name(),
-            //     direction.length(),
-            //     item.get_class().to_string()
-            // );
 
             let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = node_3d.try_cast();
             let degrees = angle_to_item.to_degrees();
@@ -104,6 +117,8 @@ impl Player3D {
                 );
 
                 if let Ok(mesh3d) = gd_mesh3d {
+                    godot_print!("mesh3d name: {}", mesh3d.get_name());
+
                     if let Some(material) = mesh3d.get_material() {
                         let standard_material: Result<Gd<StandardMaterial3D>, _> =
                             material.try_cast();
