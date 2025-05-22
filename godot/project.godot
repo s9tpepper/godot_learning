@@ -24,6 +24,10 @@ window/size/viewport_height=1200
 
 enabled=PackedStringArray("res://addons/mixamo_animation_retargeter/plugin.cfg")
 
+[global_group]
+
+items="testing groups"
+
 [input]
 
 move_forward={
@@ -59,4 +63,6 @@ mouse_mode={
 
 [physics]
 
+3d/run_on_separate_thread=true
+3d/physics_engine="Jolt Physics"
 common/physics_interpolation=true

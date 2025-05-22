@@ -1,0 +1,39 @@
+[gd_scene load_steps=7 format=3 uid="uid://bct30wpiumkcn"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_klxca"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_sulbl"]
+sky_material = SubResource("ProceduralSkyMaterial_klxca")
+
+[sub_resource type="Environment" id="Environment_lfuq5"]
+background_mode = 2
+sky = SubResource("Sky_sulbl")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_klxca"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_klxca"]
+emission = Color(0.701961, 1, 0, 1)
+emission_energy_multiplier = 10.14
+
+[sub_resource type="SphereMesh" id="SphereMesh_0f027"]
+material = SubResource("StandardMaterial3D_klxca")
+
+[node name="RigidBody3D" type="RigidBody3D"]
+mass = 231.72
+constant_force = Vector3(0, 10, 0)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_lfuq5")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+physics_interpolation_mode = 1
+shape = SubResource("SphereShape3D_klxca")
+
+[node name="DebugSphere" type="CSGMesh3D" parent="." groups=["items"]]
+physics_interpolation_mode = 1
+use_collision = true
+mesh = SubResource("SphereMesh_0f027")

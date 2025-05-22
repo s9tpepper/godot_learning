@@ -50,7 +50,89 @@ pub struct MovementContext {
 }
 
 impl Player3D {
-    fn check_collisions_by_mouse_position(&mut self) {
+    fn check_collisions_by_dot_product(&mut self) {
+        let base = self.base().clone();
+        let Some(mut tree) = base.get_tree() else {
+            return;
+        };
+
+        let player_scene = self
+            .get_context()
+            .expect("context")
+            .bind()
+            .get_player_scene();
+
+        let player_skin: Option<Gd<Node3D>> = base.try_get_node_as(&player_scene);
+        let Some(player_skin) = player_skin else {
+            godot_print!("Couldn't get player skin");
+            return;
+        };
+
+        let items = tree.get_nodes_in_group("items");
+        items.iter_shared().for_each(|item| {
+            let node_3d: Result<Gd<Node3D>, _> = item.clone().try_cast();
+            let Ok(node_3d) = node_3d else {
+                return;
+            };
+
+            let basis = player_skin.get_global_transform().basis;
+            let looking = basis.col_c().normalized();
+            let direction = node_3d.get_global_position() - player_skin.get_global_position();
+
+            let angle_to_item = looking.angle_to(direction.normalized());
+            // godot_print!(
+            //     "angle_to_item: {}, item: {}, distance: {}, class: {}",
+            //     angle_to_item.to_degrees(),
+            //     item.get_name(),
+            //     direction.length(),
+            //     item.get_class().to_string()
+            // );
+
+            let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = node_3d.try_cast();
+            let degrees = angle_to_item.to_degrees();
+
+            if direction.length() < 5. && (-35.0f32..35.0f32).contains(&degrees)
+                || direction.length() < 0.4
+            {
+                // godot_print!("Close enough");
+
+                godot_print!(
+                    "angle_to_item: {}, item: {}, distance: {}",
+                    angle_to_item.to_degrees(),
+                    item.get_name(),
+                    direction.length(),
+                );
+
+                if let Ok(mesh3d) = gd_mesh3d {
+                    if let Some(material) = mesh3d.get_material() {
+                        let standard_material: Result<Gd<StandardMaterial3D>, _> =
+                            material.try_cast();
+                        if let Ok(mut standard_mat) = standard_material {
+                            self.selected_item = Some(standard_mat.clone());
+                            standard_mat.set_feature(Feature::EMISSION, true);
+                            godot_print!("Turned on shader");
+                        } else {
+                            godot_print!("Could not cast to standard material");
+                        }
+                    } else {
+                        godot_print!("Could not get material");
+                    }
+                } else {
+                    godot_print!("Could not cast to mesh3d");
+                }
+            } else if let Ok(mesh3d) = gd_mesh3d {
+                if let Some(material) = mesh3d.get_material() {
+                    let standard_material: Result<Gd<StandardMaterial3D>, _> = material.try_cast();
+                    if let Ok(mut standard_mat) = standard_material {
+                        self.selected_item = Some(standard_mat.clone());
+                        standard_mat.set_feature(Feature::EMISSION, false);
+                    }
+                }
+            }
+        });
+    }
+
+    fn _check_collisions_by_mouse_position(&mut self) {
         let base = self.base().clone();
 
         let mut world_3d = base.get_world_3d().expect("world 3d");
@@ -157,7 +239,8 @@ impl ICharacterBody3D for Player3D {
 
         machine.process_physics(delta);
 
-        self.check_collisions_by_mouse_position();
+        // self.check_collisions_by_mouse_position();
+        self.check_collisions_by_dot_product();
     }
 
     // String representation of the object.

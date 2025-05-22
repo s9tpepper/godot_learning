@@ -1,17 +1,38 @@
-[gd_scene load_steps=6 format=3 uid="uid://cv1auxkntu6f8"]
+[gd_scene load_steps=11 format=3 uid="uid://cv1auxkntu6f8"]
+
+[ext_resource type="Material" uid="uid://o8ug5yeamwk3" path="res://debug_sphere_material.tres" id="1_u52ul"]
+[ext_resource type="PackedScene" uid="uid://bct30wpiumkcn" path="res://test_sphere.tscn" id="1_vonw3"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_u52ul"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_vonw3"]
+sky_material = SubResource("ProceduralSkyMaterial_u52ul")
+
+[sub_resource type="Environment" id="Environment_oi3di"]
+background_mode = 2
+sky = SubResource("Sky_vonw3")
+tonemap_mode = 2
+glow_enabled = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gyfs4"]
 albedo_color = Color(0.406157, 0.132929, 0, 0.992157)
 
-[sub_resource type="BoxMesh" id="BoxMesh_0f027"]
-
-[sub_resource type="SphereMesh" id="SphereMesh_0f027"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0f027"]
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_2c62f"]
 
+[sub_resource type="TorusMesh" id="TorusMesh_u52ul"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_u52ul"]
+emission = Color(0.701961, 1, 0, 1)
+emission_energy_multiplier = 10.14
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_u52ul"]
+
 [node name="Level" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_oi3di")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.862697, -0.374264, -0.340117, 0.505451, 0.616147, 0.604055, -0.0165137, -0.693029, 0.720721, 7.46761, 6.0036, 7.26263)
@@ -22,16 +43,8 @@ use_collision = true
 size = Vector3(1000, 1, 1000)
 material = SubResource("StandardMaterial3D_gyfs4")
 
-[node name="debug z box" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.692305, 0.117584, 16.6714)
-mesh = SubResource("BoxMesh_0f027")
-skeleton = NodePath("../..")
-
-[node name="debug x sphere" type="CSGMesh3D" parent="."]
+[node name="DebugSphere" parent="." instance=ExtResource("1_vonw3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.02652, 0.178212, -0.66872)
-use_collision = true
-mesh = SubResource("SphereMesh_0f027")
-material = SubResource("StandardMaterial3D_0f027")
 
 [node name="Debug" type="Debug" parent="."]
 offset_right = 40.0
@@ -51,3 +64,17 @@ size = Vector3(7.67554, 4.0072, 0.185425)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0841913, 2.05841, -7.6419)
 shape = SubResource("BoxShape3D_2c62f")
+
+[node name="TestDonut" type="CSGMesh3D" parent="." groups=["items"]]
+transform = Transform3D(1.37209, 0, 0, 0, 1, 0, 0, 0, 1.87239, 5.61847, 0.284443, -0.733852)
+use_collision = true
+mesh = SubResource("TorusMesh_u52ul")
+material = SubResource("StandardMaterial3D_u52ul")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestDonut"]
+
+[node name="CSGMesh3D" type="CSGMesh3D" parent="." groups=["items"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 16.7839)
+use_collision = true
+mesh = SubResource("CylinderMesh_u52ul")
+material = ExtResource("1_u52ul")
