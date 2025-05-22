@@ -1,6 +1,0 @@
-[gd_resource type="MovementContext" format=3 uid="uid://bok7umid2x6cb"]
-
-[resource]
-player = NodePath(".")
-player_scene = NodePath("Player")
-walking_animation_name = "mixamo_com"
