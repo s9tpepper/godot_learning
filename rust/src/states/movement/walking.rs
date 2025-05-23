@@ -10,10 +10,9 @@ use godot::{
 use crate::{
     actions::Actions,
     common::{camera::Camera, states::State},
-    player::MovementContext,
 };
 
-use super::movement_states::MovementStates;
+use super::{context::MovementContext, movement_states::MovementStates};
 
 static ACTIONS: LazyLock<Actions> = LazyLock::new(Actions::default);
 

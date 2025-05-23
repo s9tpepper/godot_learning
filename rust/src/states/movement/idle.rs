@@ -7,9 +7,9 @@ use godot::{
     obj::Gd,
 };
 
-use crate::{actions::Actions, common::states::State, player::MovementContext};
+use crate::{actions::Actions, common::states::State};
 
-use super::movement_states::MovementStates;
+use super::{context::MovementContext, movement_states::MovementStates};
 
 // TODO: Figure out a better way to do this so that I don't have to
 // duplicate this object in both Idle and Walking states

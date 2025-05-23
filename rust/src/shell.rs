@@ -2,7 +2,6 @@
 use godot::{
     builtin::Vector3,
     classes::{INode3D, Node, Node3D, PackedScene},
-    global::godot_print,
     meta::ToGodot,
     obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},

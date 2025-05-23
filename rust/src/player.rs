@@ -9,7 +9,8 @@ use godot::prelude::*;
 use rand::Rng;
 
 use crate::common::finite_state_machine::FiniteStateMachine;
-use crate::some_state_machine::SomeStateMachine;
+use crate::states::movement::MovementMachine;
+use crate::states::movement::context::MovementContext;
 
 pub type StateContext = Gd<MovementContext>;
 
@@ -20,42 +21,27 @@ pub struct Player3D {
     #[export]
     context: Option<StateContext>,
     base: Base<CharacterBody3D>,
-    state_machine: Option<SomeStateMachine>,
-
+    movement_machine: Option<MovementMachine>,
     selected_item: Option<Gd<StandardMaterial3D>>,
-}
-
-#[derive(Default, Debug, GodotClass)]
-#[class(base=Resource, init)]
-pub struct MovementContext {
-    #[export]
-    pub player: NodePath,
-
-    #[export]
-    pub player_scene: NodePath,
-
-    #[export]
-    pub pivot: NodePath,
-
-    #[export]
-    pub camera: NodePath,
-
-    #[export]
-    pub animation_player: GString,
-
-    #[export]
-    pub walking_animation_name: GString,
-
-    #[export(range=(0.01, 400.0))]
-    pub movement_speed: f32,
-
-    #[export]
-    /// Points to AudioStreamPlayer3D to play a footstep sound
-    pub footstep: NodePath,
 }
 
 #[godot_api]
 impl Player3D {
+    fn get_player_skin(&self) -> Gd<Node3D> {
+        let base = self.base().clone();
+        let player_scene_node_path = self
+            .get_context()
+            .expect("context")
+            .bind()
+            .get_player_scene();
+
+        let player_skin: Gd<Node3D> = base
+            .try_get_node_as(&player_scene_node_path)
+            .expect("Player model should be set");
+
+        player_skin
+    }
+
     #[func]
     /// Plays a footstep sound using the footstep node path from the MovementContext
     fn footstep(&self) {
@@ -87,17 +73,7 @@ impl Player3D {
             return;
         };
 
-        let player_scene = self
-            .get_context()
-            .expect("context")
-            .bind()
-            .get_player_scene();
-
-        let player_skin: Option<Gd<Node3D>> = base.try_get_node_as(&player_scene);
-        let Some(player_skin) = player_skin else {
-            godot_print!("Couldn't get player skin");
-            return;
-        };
+        let player_skin = self.get_player_skin();
 
         let items = tree.get_nodes_in_group("items");
         items.iter_shared().for_each(|item| {
@@ -230,13 +206,13 @@ impl ICharacterBody3D for Player3D {
         if let Some(context) = &self.context {
             godot_print!("[Player3D::process()] Starting state machine...");
 
-            let mut state_machine = SomeStateMachine::new(context.clone(), base.clone());
-            state_machine.ready();
+            let mut movement_machine = MovementMachine::new(context.clone(), base.clone());
+            movement_machine.ready();
 
-            self.state_machine = Some(state_machine);
+            self.movement_machine = Some(movement_machine);
             godot_print!(
                 "[Player3D::process()] Set self.state_machine to {:?}",
-                self.state_machine
+                self.movement_machine
             );
         } else {
             godot_print!("tree: {base:?}, context: {:?}", self.context);
@@ -245,7 +221,7 @@ impl ICharacterBody3D for Player3D {
 
     // Called every frame.
     fn process(&mut self, delta: f64) {
-        let Some(ref mut machine) = self.state_machine else {
+        let Some(ref mut machine) = self.movement_machine else {
             godot_print!("[Player3D::process()] Unable to get state machine reference");
             return;
         };
@@ -255,7 +231,7 @@ impl ICharacterBody3D for Player3D {
 
     // Called every physics frame.
     fn physics_process(&mut self, delta: f64) {
-        let Some(ref mut machine) = self.state_machine else {
+        let Some(ref mut machine) = self.movement_machine else {
             godot_print!("[Player3D::physics_process()] Unable to get state machine reference");
             return;
         };
@@ -273,7 +249,7 @@ impl ICharacterBody3D for Player3D {
 
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
-        let Some(ref mut machine) = self.state_machine else {
+        let Some(ref mut machine) = self.movement_machine else {
             godot_print!("[Player3D::input()] Unable to get state machine reference");
             return;
         };
