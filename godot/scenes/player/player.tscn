@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=4 uid="uid://djpguxrq64jka"]
+[gd_scene load_steps=23 format=4 uid="uid://djpguxrq64jka"]
 
 [ext_resource type="Texture2D" uid="uid://j7vstded54q5" path="res://characters/test_model/walking_character_0.png" id="1_1jxqw"]
 [ext_resource type="Texture2D" uid="uid://dwqqis0a8muuc" path="res://characters/test_model/walking_character_1.png" id="2_dw050"]
@@ -18,16 +18,10 @@ walking_animation_name = "mixamo_com"
 movement_speed = 3.0
 footstep = NodePath("Player/AudioStreamPlayer3D")
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2c62f"]
-radius = 0.341212
-height = 1.7677
-
-[sub_resource type="SphereMesh" id="SphereMesh_2c62f"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2c62f"]
-albedo_color = Color(1, 0, 0, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0owmy"]
+margin = 0.0
+radius = 0.334918
+height = 1.66195
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uk1kb"]
 resource_name = "EyeSpec_MAT"
@@ -556,6 +550,9 @@ _surfaces = [{
 }]
 blend_shape_mode = 0
 
+[sub_resource type="Animation" id="Animation_0owmy"]
+length = 0.001
+
 [sub_resource type="Animation" id="Animation_igswo"]
 resource_name = "Take 001"
 length = 3.33333
@@ -924,9 +921,6 @@ tracks/51/interp = 1
 tracks/51/loop_wrap = true
 tracks/51/keys = PackedFloat32Array(0, 1, 1.56462e-06, 2.98023e-08, -2.98023e-08, 1)
 
-[sub_resource type="Animation" id="Animation_0owmy"]
-length = 0.001
-
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8ve64"]
 _data = {
 &"RESET": SubResource("Animation_0owmy"),
@@ -939,33 +933,8 @@ context = SubResource("MovementContext_0f027")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 physics_interpolation_mode = 1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.88364, 0)
-shape = SubResource("CapsuleShape3D_2c62f")
-
-[node name="Movement" type="Movement" parent="." node_paths=PackedStringArray("pivot", "target", "target_node", "debug_ball", "motion_signals")]
-pivot = NodePath("../Pivot")
-target = NodePath("..")
-target_node = NodePath("../Player")
-debug_ball = NodePath("../Debug Ball")
-animation_player_path = &"AnimationPlayer"
-walking_animation_name = &"mixamo_com"
-movement_speed = 3.0
-jump_height = 2.0
-fall_speed = 60.0
-jump_force = 40.0
-motion_signals = NodePath("../MotionSignals")
-
-[node name="Debug Ball" type="CSGMesh3D" parent="."]
-transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -0.0713739, 0.266867, 1.44938)
-visible = false
-mesh = SubResource("SphereMesh_2c62f")
-material = SubResource("StandardMaterial3D_2c62f")
-
-[node name="Area3D" type="Area3D" parent="Debug Ball"]
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Debug Ball/Area3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0396121, 0.0595267)
-shape = SubResource("BoxShape3D_0f027")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_0owmy")
 
 [node name="Player" type="Node3D" parent="."]
 
@@ -1466,14 +1435,6 @@ libraries = {
 [node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="Player"]
 stream = ExtResource("7_0owmy")
 volume_db = -12.0
-
-[node name="MovementAnimations" type="MovementAnimations" parent="." node_paths=PackedStringArray("target_node", "motion_signals")]
-target_node = NodePath("../Player")
-animation_player_path = &"AnimationPlayer"
-walking_animation_name = &"mixamo_com"
-motion_signals = NodePath("../MotionSignals")
-
-[node name="MotionSignals" type="MotionSignals" parent="."]
 
 [node name="Pivot" type="Camera" parent="."]
 rotation_speed = Vector2(0.005, 0.005)

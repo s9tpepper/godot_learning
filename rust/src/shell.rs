@@ -1,7 +1,7 @@
 //uid://bbynqotbuicfn // test_scene.tscn
 use godot::{
     builtin::Vector3,
-    classes::{INode3D, Node3D, PackedScene},
+    classes::{INode3D, Node, Node3D, PackedScene},
     global::godot_print,
     meta::ToGodot,
     obj::{Base, Gd, WithBaseField},
@@ -13,6 +13,7 @@ use godot::{
 #[class(base=Node3D, init)]
 struct Shell {
     base: Base<Node3D>,
+    level: Option<Gd<Node>>,
 }
 
 #[godot_api]
@@ -26,15 +27,6 @@ impl INode3D for Shell {
             .instantiate()
             .unwrap();
 
-        let test_sphere = load::<PackedScene>("res://test_sphere.tscn");
-        for i in 1..100 {
-            let sphere = test_sphere.instantiate().unwrap();
-            let mut sphere: Gd<Node3D> = sphere.try_cast().unwrap();
-
-            sphere.set_position(Vector3::UP * i as f32 * 10.);
-            level.add_child(&sphere);
-        }
-
         #[allow(clippy::option_map_unit_fn)]
         self.base_mut()
             .get_tree()
@@ -44,7 +36,17 @@ impl INode3D for Shell {
                 root.call_deferred("add_child", &[level.to_variant()]);
             });
 
-        godot_print!("Finish start up");
+        self.level = Some(level);
+
+        // Add spheres for testing
+        let test_sphere = load::<PackedScene>("res://test_sphere.tscn");
+        for i in 1..10 {
+            let sphere = test_sphere.instantiate().unwrap();
+            let mut sphere: Gd<Node3D> = sphere.try_cast().unwrap();
+
+            sphere.set_position(Vector3::UP * i as f32 * 10.);
+            self.level.clone().expect("xx").add_child(&sphere);
+        }
     }
 }
 // Treated as an enum with two values: "One" and "Two"

@@ -120,23 +120,20 @@ impl Player3D {
             {
                 // godot_print!("Close enough");
 
-                godot_print!(
-                    "angle_to_item: {}, item: {}, distance: {}",
-                    angle_to_item.to_degrees(),
-                    item.get_name(),
-                    direction.length(),
-                );
+                // godot_print!(
+                //     "angle_to_item: {}, item: {}, distance: {}",
+                //     angle_to_item.to_degrees(),
+                //     item.get_name(),
+                //     direction.length(),
+                // );
 
                 if let Ok(mesh3d) = gd_mesh3d {
-                    godot_print!("mesh3d name: {}", mesh3d.get_name());
-
                     if let Some(material) = mesh3d.get_material() {
                         let standard_material: Result<Gd<StandardMaterial3D>, _> =
                             material.try_cast();
                         if let Ok(mut standard_mat) = standard_material {
                             self.selected_item = Some(standard_mat.clone());
                             standard_mat.set_feature(Feature::EMISSION, true);
-                            godot_print!("Turned on shader");
                         } else {
                             godot_print!("Could not cast to standard material");
                         }
