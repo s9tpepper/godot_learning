@@ -1447,3 +1447,10 @@ spring_length = 3.0
 
 [node name="Camera3D" type="Camera3D" parent="Pivot/SpringArm3D"]
 transform = Transform3D(1, 5.31554e-08, 1.80164e-08, -5.31554e-08, 0.793916, 0.608027, 1.80164e-08, -0.608027, 0.793916, 0, 0, 0)
+
+[node name="ItemsDetector" type="ProximityDetector" parent="."]
+player_scene = NodePath("../Player")
+detection_group_name = "items"
+detection_distance = 5.0
+view_angle_degrees = 38.0
+detection_mode = "Multiple"

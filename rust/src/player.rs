@@ -9,6 +9,7 @@ use godot::prelude::*;
 use rand::Rng;
 
 use crate::common::finite_state_machine::FiniteStateMachine;
+use crate::common::proximity_detector::ProximityDetector;
 use crate::states::movement::MovementMachine;
 use crate::states::movement::context::MovementContext;
 
@@ -27,6 +28,7 @@ pub struct Player3D {
 
 #[godot_api]
 impl Player3D {
+    #[allow(unused)]
     fn get_player_skin(&self) -> Gd<Node3D> {
         let base = self.base().clone();
         let player_scene_node_path = self
@@ -65,70 +67,6 @@ impl Player3D {
         audio_stream_player_3d.set_pitch_scale(pitch_scale);
 
         audio_stream_player_3d.play();
-    }
-
-    fn check_collisions_by_dot_product(&mut self) {
-        let base = self.base().clone();
-        let Some(mut tree) = base.get_tree() else {
-            return;
-        };
-
-        let player_skin = self.get_player_skin();
-
-        let items = tree.get_nodes_in_group("items");
-        items.iter_shared().for_each(|item| {
-            let node_3d: Result<Gd<Node3D>, _> = item.clone().try_cast();
-            let Ok(node_3d) = node_3d else {
-                return;
-            };
-
-            let basis = player_skin.get_global_transform().basis;
-            let looking = basis.col_c().normalized();
-            let direction = node_3d.get_global_position() - player_skin.get_global_position();
-
-            let angle_to_item = looking.angle_to(direction.normalized());
-
-            let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = node_3d.try_cast();
-            let degrees = angle_to_item.to_degrees();
-
-            if direction.length() < 5. && (-35.0f32..35.0f32).contains(&degrees)
-                || direction.length() < 0.4
-            {
-                // godot_print!("Close enough");
-
-                // godot_print!(
-                //     "angle_to_item: {}, item: {}, distance: {}",
-                //     angle_to_item.to_degrees(),
-                //     item.get_name(),
-                //     direction.length(),
-                // );
-
-                if let Ok(mesh3d) = gd_mesh3d {
-                    if let Some(material) = mesh3d.get_material() {
-                        let standard_material: Result<Gd<StandardMaterial3D>, _> =
-                            material.try_cast();
-                        if let Ok(mut standard_mat) = standard_material {
-                            self.selected_item = Some(standard_mat.clone());
-                            standard_mat.set_feature(Feature::EMISSION, true);
-                        } else {
-                            godot_print!("Could not cast to standard material");
-                        }
-                    } else {
-                        godot_print!("Could not get material");
-                    }
-                } else {
-                    godot_print!("Could not cast to mesh3d");
-                }
-            } else if let Ok(mesh3d) = gd_mesh3d {
-                if let Some(material) = mesh3d.get_material() {
-                    let standard_material: Result<Gd<StandardMaterial3D>, _> = material.try_cast();
-                    if let Ok(mut standard_mat) = standard_material {
-                        self.selected_item = Some(standard_mat.clone());
-                        standard_mat.set_feature(Feature::EMISSION, false);
-                    }
-                }
-            }
-        });
     }
 
     fn _check_collisions_by_mouse_position(&mut self) {
@@ -217,6 +155,100 @@ impl ICharacterBody3D for Player3D {
         } else {
             godot_print!("tree: {base:?}, context: {:?}", self.context);
         }
+
+        if let Some(ref mut items_detector) =
+            base.try_get_node_as::<ProximityDetector>("ItemsDetector")
+        {
+            // NOTE: One way to handle detections from ProximityDetector
+            items_detector
+                .bind_mut()
+                .signals()
+                .item_entered_proximity()
+                .connect(|item: Gd<Node3D>| {
+                    let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = item.try_cast();
+                    if let Ok(item) = gd_mesh3d {
+                        if let Some(material) = item.get_material() {
+                            let standard_material: Result<Gd<StandardMaterial3D>, _> =
+                                material.try_cast();
+                            if let Ok(mut standard_mat) = standard_material {
+                                standard_mat.set_feature(Feature::EMISSION, true);
+                            } else {
+                                godot_print!("Could not cast to standard material");
+                            }
+                        } else {
+                            godot_print!("Could not get material");
+                        }
+                    }
+                });
+
+            // NOTE: One way to handle detections from ProximityDetector
+            items_detector
+                .bind_mut()
+                .signals()
+                .item_exited_proximity()
+                .connect(|item: Gd<Node3D>| {
+                    let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = item.try_cast();
+                    if let Ok(item) = gd_mesh3d {
+                        if let Some(material) = item.get_material() {
+                            let standard_material: Result<Gd<StandardMaterial3D>, _> =
+                                material.try_cast();
+                            if let Ok(mut standard_mat) = standard_material {
+                                standard_mat.set_feature(Feature::EMISSION, false);
+                            } else {
+                                godot_print!("Could not cast to standard material");
+                            }
+                        } else {
+                            godot_print!("Could not get material");
+                        }
+                    }
+                });
+
+            items_detector
+                .bind_mut()
+                .signals()
+                .items_entered_proximity()
+                .connect(|items: Array<Gd<Node3D>>| {
+                    items.iter_shared().for_each(|item| {
+                        let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = item.try_cast();
+                        if let Ok(item) = gd_mesh3d {
+                            if let Some(material) = item.get_material() {
+                                let standard_material: Result<Gd<StandardMaterial3D>, _> =
+                                    material.try_cast();
+                                if let Ok(mut standard_mat) = standard_material {
+                                    standard_mat.set_feature(Feature::EMISSION, true);
+                                } else {
+                                    godot_print!("Could not cast to standard material");
+                                }
+                            } else {
+                                godot_print!("Could not get material");
+                            }
+                        }
+                    });
+                });
+
+            items_detector
+                .bind_mut()
+                .signals()
+                .items_exited_proximity()
+                .connect(|items: Array<Gd<Node3D>>| {
+                    items.iter_shared().for_each(|item| {
+                        let gd_mesh3d: Result<Gd<CsgMesh3D>, _> = item.try_cast();
+                        if let Ok(item) = gd_mesh3d {
+                            if let Some(material) = item.get_material() {
+                                let standard_material: Result<Gd<StandardMaterial3D>, _> =
+                                    material.try_cast();
+                                if let Ok(mut standard_mat) = standard_material {
+                                    standard_mat.set_feature(Feature::EMISSION, false);
+                                } else {
+                                    godot_print!("Could not cast to standard material");
+                                }
+                            } else {
+                                godot_print!("Could not get material");
+                            }
+                        }
+                    });
+                });
+        }
     }
 
     // Called every frame.
@@ -239,7 +271,6 @@ impl ICharacterBody3D for Player3D {
         machine.process_physics(delta);
 
         // self.check_collisions_by_mouse_position();
-        self.check_collisions_by_dot_product();
     }
 
     // String representation of the object.
