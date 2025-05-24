@@ -933,7 +933,7 @@ context = SubResource("MovementContext_0f027")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 physics_interpolation_mode = 1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("CapsuleShape3D_0owmy")
 
 [node name="Player" type="Node3D" parent="."]
@@ -1452,5 +1452,4 @@ transform = Transform3D(1, 5.31554e-08, 1.80164e-08, -5.31554e-08, 0.793916, 0.6
 player_scene = NodePath("../Player")
 detection_group_name = "items"
 detection_distance = 5.0
-view_angle_degrees = 38.0
-detection_mode = "Multiple"
+view_angle_degrees = 30.0

@@ -1,10 +1,16 @@
 use std::collections::HashMap;
 
 use godot::{
-    builtin::{Array, GString, NodePath},
-    classes::{INode3D, Node3D},
+    builtin::{
+        Array, Color, GString, NodePath, PackedVector3Array, StringName, Variant, Vector3, real,
+    },
+    classes::{
+        EditorNode3DGizmo, EditorNode3DGizmoPlugin, EditorPlugin, Engine, IEditorNode3DGizmoPlugin,
+        IEditorPlugin, INode3D, Node3D,
+    },
+    global::godot_print,
     meta::{ArrayElement, AsArg},
-    obj::{Base, Gd, InstanceId, WithBaseField, WithUserSignals},
+    obj::{Base, Gd, InstanceId, NewGd, WithBaseField, WithUserSignals},
     prelude::{Export, GodotClass, GodotConvert, Var, godot_api},
 };
 
@@ -12,7 +18,7 @@ use godot::{
 /// items within the given parameters to ProximityDetector, or it will
 /// detect the single closest item based on the given parameters to
 /// the ProximityDetector node.
-#[derive(GodotConvert, Var, Export, Default, PartialEq)]
+#[derive(GodotConvert, Var, Export, Default, PartialEq, Debug)]
 #[godot(via = GString)]
 pub enum DetectionMode {
     #[default]
@@ -30,14 +36,23 @@ impl From<GString> for DetectionMode {
     }
 }
 
-#[derive(GodotClass)]
-#[class(base=Node3D, init)]
-#[allow(unused)]
+impl From<Variant> for DetectionMode {
+    fn from(value: Variant) -> Self {
+        match value.to_string().as_str() {
+            "Single" => DetectionMode::Single,
+            "Multiple" => DetectionMode::Multiple,
+            _ => DetectionMode::Multiple,
+        }
+    }
+}
+
+#[derive(GodotClass, Debug)]
+#[class(tool, base=Node3D, init)]
 /// ProximityDetector will detect the proximity of nodes based on
 /// the given parameters that are set on the instance in the node tree.
 pub struct ProximityDetector {
     #[base]
-    base: Base<Node3D>,
+    pub base: Base<Node3D>,
 
     #[export]
     /// NodePath to the node that should be used
@@ -98,7 +113,16 @@ impl ProximityDetector {
 
 #[godot_api]
 impl INode3D for ProximityDetector {
-    // Called every physics frame.
+    fn set_property(&mut self, _property: StringName, _value: Variant) -> bool {
+        let engine = Engine::singleton();
+
+        if engine.is_editor_hint() {
+            self.base_mut().update_gizmos();
+        }
+
+        false
+    }
+
     fn physics_process(&mut self, _delta: f64) {
         let base = self.base().clone();
         let Some(mut tree) = base.get_tree() else {
@@ -196,7 +220,7 @@ impl INode3D for ProximityDetector {
 
     // String representation of the object.
     fn to_string(&self) -> GString {
-        "ProximityDetector".to_string().into()
+        "ProximityDetector".into()
     }
 }
 
@@ -212,4 +236,114 @@ where
     });
 
     new_array
+}
+
+#[derive(GodotClass)]
+#[class(tool, base=EditorNode3DGizmoPlugin)]
+struct ProximityGizmo {
+    #[base]
+    base: Base<EditorNode3DGizmoPlugin>,
+
+    material_created: bool,
+}
+
+#[godot_api]
+impl IEditorNode3DGizmoPlugin for ProximityGizmo {
+    fn init(base: Base<EditorNode3DGizmoPlugin>) -> Self {
+        ProximityGizmo {
+            base,
+            material_created: false,
+        }
+    }
+
+    fn redraw(&mut self, gizmo: Option<Gd<EditorNode3DGizmo>>) {
+        let Some(mut gizmo) = gizmo else { return };
+
+        gizmo.clear();
+
+        if !self.material_created {
+            self.base_mut().create_material("main", Color::RED);
+        }
+
+        let mut base = self.base_mut();
+
+        let Some(node3d) = gizmo.get_node_3d() else {
+            return;
+        };
+
+        let mut lines = PackedVector3Array::new();
+
+        let detection_distance: f32 = node3d.get("detection_distance").to();
+        let view_angle_degrees: f32 = node3d.get("view_angle_degrees").to();
+
+        let view_angle_radians: real = view_angle_degrees.to_radians();
+
+        let basis_c = node3d.get_basis().col_c();
+        let rotated_left = basis_c.rotated(Vector3::UP, view_angle_radians) * detection_distance;
+        let rotated_right = basis_c.rotated(Vector3::UP, -view_angle_radians) * detection_distance;
+
+        lines.push(Vector3::new(0., 0., 0.));
+        lines.push(rotated_left);
+
+        lines.push(Vector3::new(0., 0., 0.));
+        lines.push(rotated_right);
+
+        let Some(mut material) = base.get_material("main") else {
+            godot_print!("redraw: Can't get material");
+            return;
+        };
+
+        let detection_mode: DetectionMode = node3d.get("detection_mode").into();
+        match detection_mode {
+            DetectionMode::Single => material.set_albedo(Color::CYAN),
+            DetectionMode::Multiple => material.set_albedo(Color::MEDIUM_VIOLET_RED),
+        }
+
+        gizmo.add_lines(&lines, &material);
+    }
+
+    fn get_gizmo_name(&self) -> godot::prelude::GString {
+        "ProximityDetector".into()
+    }
+
+    fn has_gizmo(&self, for_node_3d: Option<godot::prelude::Gd<Node3D>>) -> bool {
+        if for_node_3d.is_none() {
+            return false;
+        }
+
+        let node = for_node_3d.unwrap();
+        let is_proximity_detector = node.try_cast::<ProximityDetector>();
+
+        is_proximity_detector.is_ok()
+    }
+}
+
+#[derive(GodotClass)]
+#[class(tool, init, base = EditorPlugin)]
+struct ProximityDetectorPlugin {
+    base: Base<EditorPlugin>,
+
+    proximity_gizmo: Option<Gd<ProximityGizmo>>,
+}
+
+#[godot_api]
+impl IEditorPlugin for ProximityDetectorPlugin {
+    fn enter_tree(&mut self) {
+        let plugin = ProximityGizmo::new_gd();
+        self.proximity_gizmo = Some(plugin.clone());
+
+        self.base_mut().add_node_3d_gizmo_plugin(&plugin);
+    }
+
+    fn exit_tree(&mut self) {
+        if self.proximity_gizmo.is_none() {
+            return;
+        }
+
+        let gizmo: Result<Gd<ProximityGizmo>, _> =
+            self.proximity_gizmo.as_ref().unwrap().clone().try_cast();
+
+        let Ok(gizmo) = gizmo else { return };
+        self.base_mut().remove_node_3d_gizmo_plugin(&gizmo);
+    }
 }
