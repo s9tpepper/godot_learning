@@ -3,10 +3,6 @@ use godot::{
     obj::Gd,
 };
 
-// pub mod idle;
-// pub mod movement_states;
-// pub mod walking;
-
 pub trait State: std::fmt::Debug {
     type StatesEnum;
     type Context;

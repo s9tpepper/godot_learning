@@ -27,7 +27,7 @@ impl INode3D for GameMouse {
         let mut input = Input::singleton();
         if input.is_action_just_pressed(ACTIONS.mouse_mode) {
             if input.get_mouse_mode() == MouseMode::CAPTURED {
-                input.set_mouse_mode(MouseMode::CONFINED);
+                input.set_mouse_mode(MouseMode::VISIBLE);
             } else {
                 input.set_mouse_mode(MouseMode::CAPTURED);
             }

@@ -8,8 +8,8 @@ use super::states::State;
 
 const STATE_ERROR: &str = "should_transition should always return state";
 
-pub trait FiniteStateMachine: Debug {
-    type StatesEnum: Clone + PartialEq + Eq + Hash + Debug;
+pub trait FiniteStateMachine: Debug + Sized {
+    type StatesEnum: PartialEq + Eq + Hash + Debug;
     type Context;
 
     fn ready(&mut self);
@@ -31,37 +31,26 @@ pub trait FiniteStateMachine: Debug {
     ) -> &mut HashMap<
         Self::StatesEnum,
         Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
-    >
-    where
-        Self: Sized;
+    >;
 
     fn get_state(
         &mut self,
-        state: Self::StatesEnum,
-    ) -> Option<&mut Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>>
-    where
-        Self: Sized,
-    {
+        state: &Self::StatesEnum,
+    ) -> Option<&mut Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>> {
         let state_map = self.get_states_map();
         state_map.get_mut(&state)
     }
 
-    fn input(&mut self, event: Gd<InputEvent>)
-    where
-        Self: Sized,
-    {
+    fn input(&mut self, event: Gd<InputEvent>) {
         let state = self.get_current_state();
-        let Some(current_state) = self.get_state(state) else {
+        let Some(current_state) = self.get_state(&state) else {
             return;
         };
 
         current_state.input(event);
     }
 
-    fn process(&mut self, delta: f64)
-    where
-        Self: Sized,
-    {
+    fn process(&mut self, delta: f64) {
         match self.should_transition() {
             (true, next_state, _) => self.transition_to_state(next_state.expect(STATE_ERROR)),
             (false, _, Some(current_state)) => current_state.process(delta as f32),
@@ -69,10 +58,7 @@ pub trait FiniteStateMachine: Debug {
         }
     }
 
-    fn process_physics(&mut self, delta: f64)
-    where
-        Self: Sized,
-    {
+    fn process_physics(&mut self, delta: f64) {
         match self.should_transition() {
             (true, next_state, _) => self.transition_to_state(next_state.expect(STATE_ERROR)),
             (false, _, Some(current_state)) => current_state.process_physics(delta as f32),
@@ -94,31 +80,25 @@ pub trait FiniteStateMachine: Debug {
                     >,
             >,
         >,
-    )
-    where
-        Self: Sized,
-    {
+    ) {
         let state = self.get_current_state();
         let transitioning = self.get_transitioning();
-        let Some(current_state) = self.get_state(state.clone()) else {
+        let Some(current_state) = self.get_state(&state) else {
             return (false, None, None);
         };
 
         let next_state = current_state.get_next_state();
-        match next_state.clone() {
-            Some(new_state) if !transitioning && state != new_state => (true, next_state, None),
+        match &next_state {
+            Some(new_state) if !transitioning && state != *new_state => (true, next_state, None),
             Some(_) | None => (false, None, Some(current_state)),
         }
     }
 
-    fn transition_to_state(&mut self, next_state: Self::StatesEnum)
-    where
-        Self: Sized,
-    {
+    fn transition_to_state(&mut self, next_state: Self::StatesEnum) {
         self.set_transitioning(true);
         let state = self.get_current_state();
 
-        let Some(current_state) = self.get_state(state.clone()) else {
+        let Some(current_state) = self.get_state(&state) else {
             godot_print!(
                 "FiniteStateMachine::transition_to_state():: Unable to get state: {:?}",
                 state
@@ -130,7 +110,7 @@ pub trait FiniteStateMachine: Debug {
         self.set_current_state(next_state);
 
         let state = self.get_current_state();
-        let Some(current_state) = self.get_state(state.clone()) else {
+        let Some(current_state) = self.get_state(&state) else {
             godot_print!(
                 "FiniteStateMachine::transition_to_state():: Unable to get state: {:?}",
                 state
