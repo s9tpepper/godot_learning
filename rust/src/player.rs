@@ -156,6 +156,7 @@ impl ICharacterBody3D for Player3D {
             godot_print!("tree: {base:?}, context: {:?}", self.context);
         }
 
+        // NOTE: Test code to test ProximityDetector component
         if let Some(ref mut items_detector) =
             base.try_get_node_as::<ProximityDetector>("ItemsDetector")
         {

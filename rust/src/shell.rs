@@ -1,23 +1,71 @@
+use std::{cell::RefCell, rc::Rc};
+
 //uid://bbynqotbuicfn // test_scene.tscn
 use godot::{
     builtin::Vector3,
     classes::{INode3D, Node, Node3D, PackedScene},
+    global::godot_print_rich,
     meta::ToGodot,
     obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
 
+use crate::common::inventory::{Inventory, InventoryItem, InventorySlot, ItemCategory};
+
 #[derive(GodotClass)]
 #[class(base=Node3D, init)]
 struct Shell {
     base: Base<Node3D>,
     level: Option<Gd<Node>>,
+    inventory: Option<Rc<RefCell<Inventory>>>,
+    // inventory: Inventory,
+}
+
+#[derive(Debug)]
+struct TestItem {}
+impl InventoryItem for TestItem {
+    fn get_name(&self) -> String {
+        "TestItem".into()
+    }
+
+    fn get_category(&self) -> ItemCategory {
+        ItemCategory::Food
+    }
+
+    fn get_max_stack_size(&self) -> i32 {
+        10
+    }
+
+    fn clone(&self) -> Box<dyn InventoryItem> {
+        Box::new(TestItem {})
+    }
 }
 
 #[godot_api]
 impl INode3D for Shell {
     fn ready(&mut self) {
+        // NOTE: This will move eventually to some kind of top level systems
+        // manager of some kind
+
+        let mut inventory = Inventory::new();
+        let test_item = TestItem {};
+        let mut slot = InventorySlot::new(Some(Box::new(test_item)), 5);
+        inventory.add(&mut slot);
+
+        let test_item = TestItem {};
+        let mut slot = InventorySlot::new(Some(Box::new(test_item)), 13);
+        inventory.add(&mut slot);
+
+        godot_print_rich!("inventory: {inventory:?}");
+
+        self.inventory = Some(Rc::new(RefCell::new(inventory)));
+
+        // self.inventory = Inventory::new();
+
+        // TODO: Later, we can load inventory from some persisted data
+        // self.inventory.load(); <-- Something like this
+
         let mut level = load::<PackedScene>("res://scenes/level.tscn")
             .instantiate()
             .unwrap();

@@ -44,7 +44,7 @@ size = Vector3(1000, 1, 1000)
 material = SubResource("StandardMaterial3D_gyfs4")
 
 [node name="DebugSphere" parent="." instance=ExtResource("1_w7c3h")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.02652, 0.178212, -0.66872)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.13947, 0.509699, -0.624568)
 
 [node name="Debug" type="Debug" parent="."]
 offset_right = 40.0

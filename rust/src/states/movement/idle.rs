@@ -57,8 +57,9 @@ impl Idle {
 impl State for Idle {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
+    type Subject = Gd<CharacterBody3D>;
 
-    fn new(context: Self::Context, character_body: Gd<CharacterBody3D>) -> Self {
+    fn new(context: Self::Context, character_body: Self::Subject) -> Self {
         let Ok(IdleNodes { animator }) = Idle::get_nodes(context.clone(), character_body) else {
             panic!("Could not get idle state nodes");
         };

@@ -22,7 +22,7 @@ window/size/always_on_top=true
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/mixamo_animation_retargeter/plugin.cfg")
+enabled=PackedStringArray("res://addons/mixamo_animation_retargeter/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
 
 [global_group]
 

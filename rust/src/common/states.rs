@@ -1,14 +1,14 @@
-use godot::{
-    classes::{CharacterBody3D, InputEvent},
-    obj::Gd,
-};
+pub mod lootable;
+
+use godot::{classes::InputEvent, obj::Gd};
 
 pub trait State: std::fmt::Debug {
     type StatesEnum;
     type Context;
+    type Subject;
 
     // TODO: Fix the second argument to a generic type, not a concrete type
-    fn new(context: Self::Context, subject: Gd<CharacterBody3D>) -> Self
+    fn new(context: Self::Context, subject: Self::Subject) -> Self
     where
         Self: Sized;
     fn get_state_name(&self) -> Self::StatesEnum;

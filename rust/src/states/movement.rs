@@ -13,7 +13,9 @@ use crate::{
     states::movement::{idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
-type DynState = Box<dyn State<Context = StateContext, StatesEnum = MovementStates>>;
+type DynState = Box<
+    dyn State<Context = StateContext, StatesEnum = MovementStates, Subject = Gd<CharacterBody3D>>,
+>;
 type StateMap = HashMap<MovementStates, DynState>;
 
 #[derive(Debug)]
@@ -49,6 +51,7 @@ impl MovementMachine {
 impl FiniteStateMachine for MovementMachine {
     type StatesEnum = MovementStates;
     type Context = StateContext;
+    type Subject = Gd<CharacterBody3D>;
 
     fn ready(&mut self) {
         godot_print!("[MovementMachine::ready()]");

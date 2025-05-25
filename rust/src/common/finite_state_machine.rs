@@ -11,6 +11,7 @@ const STATE_ERROR: &str = "should_transition should always return state";
 pub trait FiniteStateMachine: Debug + Sized {
     type StatesEnum: PartialEq + Eq + Hash + Debug;
     type Context;
+    type Subject;
 
     fn ready(&mut self);
     #[allow(clippy::type_complexity)]
@@ -19,7 +20,13 @@ pub trait FiniteStateMachine: Debug + Sized {
         context: Self::Context,
     ) -> HashMap<
         Self::StatesEnum,
-        Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
+        Box<
+            dyn State<
+                    Context = Self::Context,
+                    StatesEnum = Self::StatesEnum,
+                    Subject = Self::Subject,
+                >,
+        >,
     >;
     fn get_current_state(&self) -> Self::StatesEnum;
     fn set_current_state(&mut self, state: Self::StatesEnum);
@@ -30,15 +37,30 @@ pub trait FiniteStateMachine: Debug + Sized {
         &mut self,
     ) -> &mut HashMap<
         Self::StatesEnum,
-        Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
+        Box<
+            dyn State<
+                    Context = Self::Context,
+                    StatesEnum = Self::StatesEnum,
+                    Subject = Self::Subject,
+                >,
+        >,
     >;
 
+    #[allow(clippy::type_complexity)]
     fn get_state(
         &mut self,
         state: &Self::StatesEnum,
-    ) -> Option<&mut Box<dyn State<Context = Self::Context, StatesEnum = Self::StatesEnum>>> {
+    ) -> Option<
+        &mut Box<
+            dyn State<
+                    Context = Self::Context,
+                    StatesEnum = Self::StatesEnum,
+                    Subject = Self::Subject,
+                >,
+        >,
+    > {
         let state_map = self.get_states_map();
-        state_map.get_mut(&state)
+        state_map.get_mut(state)
     }
 
     fn input(&mut self, event: Gd<InputEvent>) {
@@ -77,6 +99,7 @@ pub trait FiniteStateMachine: Debug + Sized {
                 dyn State<
                         StatesEnum = <Self as FiniteStateMachine>::StatesEnum,
                         Context = <Self as FiniteStateMachine>::Context,
+                        Subject = <Self as FiniteStateMachine>::Subject,
                     >,
             >,
         >,

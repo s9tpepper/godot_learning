@@ -120,8 +120,9 @@ impl Walking {
 impl State for Walking {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
+    type Subject = Gd<CharacterBody3D>;
 
-    fn new(context: Self::Context, machine_node: Gd<CharacterBody3D>) -> Self {
+    fn new(context: Self::Context, machine_node: Self::Subject) -> Self {
         let Ok(WalkingNodes {
             pivot,
             player,
