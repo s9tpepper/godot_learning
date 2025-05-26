@@ -2,15 +2,11 @@ use std::sync::LazyLock;
 
 use godot::{
     builtin::{Basis, Vector3},
-    classes::{AnimationPlayer, CharacterBody3D, Input, InputEvent, Node3D},
-    global::godot_print,
+    classes::{Input, InputEvent},
     obj::Gd,
 };
 
-use crate::{
-    actions::Actions,
-    common::{camera::Camera, states::State},
-};
+use crate::{actions::Actions, common::states::State};
 
 use super::{context::MovementContext, movement_states::MovementStates};
 
@@ -22,73 +18,36 @@ pub struct Walking {
     context: Gd<MovementContext>,
     elapsed: f32,
     next_state: Option<MovementStates>,
-    pivot: Gd<Camera>,
-    player: Gd<CharacterBody3D>,
-    player_scene: Gd<Node3D>,
     instant_velocity: Vector3,
-    animator: Gd<AnimationPlayer>,
-}
-
-struct WalkingNodes {
-    pivot: Gd<Camera>,
-    player: Gd<CharacterBody3D>,
-    player_scene: Gd<Node3D>,
-    animator: Gd<AnimationPlayer>,
 }
 
 impl Walking {
-    // TODO: Clean this function up so that it doesn't have all these panic!() calls
-    fn get_nodes(mut context: Gd<MovementContext>) -> anyhow::Result<WalkingNodes> {
-        let context = context.bind_mut();
-        let scene_tree = context
-            .get_scene_tree()
-            .expect("Need to set_scene_tree() on MovementContext first");
-
-        let pivot = scene_tree.try_get_node_as::<Camera>(&context.get_pivot());
-        let player = scene_tree.try_get_node_as::<CharacterBody3D>(&context.get_player());
-        let player_scene = scene_tree.try_get_node_as::<Node3D>(&context.get_player_scene());
-
-        let (Some(pivot), Some(player), Some(player_scene)) =
-            (pivot.clone(), player.clone(), player_scene.clone())
-        else {
-            godot_print!("pivot: {pivot:?}");
-            godot_print!("player: {player:?}");
-            godot_print!("player_scene: {player_scene:?}");
-
-            panic!("Could not get nodes");
-        };
-
-        let Some(animator) =
-            player_scene.try_get_node_as::<AnimationPlayer>(context.get_animation_player().arg())
-        else {
-            godot_print!("Couldn't get animator");
-            panic!("Could not get animator");
-        };
-
-        Ok(WalkingNodes {
-            pivot: pivot.clone(),
-            player: player.clone(),
-            player_scene: player_scene.clone(),
-            animator: animator.clone(),
-        })
-    }
-
     fn rotate_target_art(&mut self) {
         // Only rotate the model if there is movement
         if self.instant_velocity == Vector3::ZERO {
             return;
         }
 
-        let current_basis = self.player_scene.get_basis();
+        let context = self.context.bind();
+        let mut player_scene = context.get_node(context.player_scene_node.clone());
+
+        let current_basis = player_scene.get_basis();
         let target_basis = Basis::looking_at(self.instant_velocity, Vector3::UP, true);
         let interpolated = current_basis.slerp(&target_basis, 0.2);
-        self.player_scene.set_basis(interpolated);
+        player_scene.set_basis(interpolated);
     }
 
     fn apply_ground_movement(&mut self, input: &Gd<Input>) {
+        let gd_context = self.context.clone();
+        let context = gd_context.bind();
+
+        let pivot = context.get_node(context.pivot_node.clone());
+        let mut player = context.get_node(context.player_node.clone());
+        let mut animator = context.get_node(context.animator.clone());
+
         let context = self.context.clone();
         let context = context.bind();
-        let pivot_y = self.pivot.get_global_rotation().y;
+        let pivot_y = pivot.get_global_rotation().y;
 
         let movement_vector = input
             .get_vector(
@@ -102,11 +61,11 @@ impl Walking {
         self.instant_velocity =
             Vector3::new(movement_vector.x, 0., movement_vector.y) * context.movement_speed;
 
-        self.player.set_velocity(self.instant_velocity);
-        self.player.move_and_slide();
+        player.set_velocity(self.instant_velocity);
+        player.move_and_slide();
 
         if self.instant_velocity != Vector3::ZERO {
-            self.animator
+            animator
                 .play_ex()
                 .name(context.walking_animation_name.arg())
                 .done();
@@ -123,23 +82,8 @@ impl State for Walking {
     type Context = Gd<MovementContext>;
 
     fn new(context: Self::Context) -> Self {
-        let Ok(WalkingNodes {
-            pivot,
-            player,
-            player_scene,
-            animator,
-        }) = Walking::get_nodes(context.clone())
-        else {
-            godot_print!("Could not get walking nodes");
-            panic!("wtf");
-        };
-
         Walking {
             context,
-            pivot,
-            player,
-            player_scene,
-            animator,
             elapsed: 0.,
             next_state: None,
             instant_velocity: Vector3::ZERO,
@@ -159,7 +103,6 @@ impl State for Walking {
     }
 
     fn enter(&mut self) {
-        godot_print!("Entering Walking state...");
         self.next_state = Some(MovementStates::Walking);
     }
 
@@ -168,6 +111,10 @@ impl State for Walking {
     fn process(&mut self, _delta: f32) {}
 
     fn physics_process(&mut self, _delta: f32) {
+        let gd_context = self.context.clone();
+        let context = gd_context.bind();
+        let mut player = context.get_node(context.player_node.clone());
+
         let input = Input::singleton();
 
         self.instant_velocity = Vector3::ZERO;
@@ -176,13 +123,11 @@ impl State for Walking {
         // self.apply_jump(&input, node, delta);
 
         self.apply_ground_movement(&input);
-        self.player.set_velocity(self.instant_velocity);
-        self.player.move_and_slide();
+        player.set_velocity(self.instant_velocity);
+        player.move_and_slide();
     }
 
     fn exit(&mut self) {
-        godot_print!("Exiting Walking state");
-
         self.elapsed = 0.;
         self.set_next_state(MovementStates::Walking);
     }

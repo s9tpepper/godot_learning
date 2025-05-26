@@ -1,6 +1,6 @@
 use godot::{
     builtin::{GString, NodePath},
-    classes::Node,
+    classes::{AnimationPlayer, CharacterBody3D, Node, Node3D},
     obj::Gd,
     prelude::GodotClass,
 };
@@ -33,7 +33,11 @@ pub struct MovementContext {
     /// Points to AudioStreamPlayer3D to play a footstep sound
     pub footstep: NodePath,
 
-    scene_tree: Option<Gd<Node>>,
+    pub scene_tree: Option<Gd<Node>>,
+    pub pivot_node: Option<Gd<Node3D>>,
+    pub player_node: Option<Gd<CharacterBody3D>>,
+    pub player_scene_node: Option<Gd<Node3D>>,
+    pub animator: Option<Gd<AnimationPlayer>>,
 }
 
 impl MovementContext {
@@ -43,5 +47,9 @@ impl MovementContext {
 
     pub fn get_scene_tree(&self) -> Option<Gd<Node>> {
         self.scene_tree.clone()
+    }
+
+    pub fn get_node<T: Clone>(&self, option: Option<T>) -> T {
+        option.clone().expect(" exist")
     }
 }

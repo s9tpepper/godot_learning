@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use context::MovementContext;
 use godot::{
-    classes::{Node, Node3D},
+    classes::{AnimationPlayer, Node, Node3D},
     global::godot_print,
     obj::{Base, Gd},
     prelude::{GodotClass, godot_api},
@@ -39,8 +39,42 @@ pub struct MovementMachine {
 impl_inode3d_for_fsm!(MovementMachine);
 
 impl MovementMachine {
+    fn get_nodes(&mut self) {
+        let mut context = self.context.bind_mut();
+        let scene_tree = context
+            .get_scene_tree()
+            .expect("Need to set_scene_tree() on MovementContext first");
+
+        let pivot = scene_tree.try_get_node_as::<Node3D>(&context.get_pivot());
+        let player = scene_tree.try_get_node_as::<Node3D>(&context.get_player());
+        let player_scene = scene_tree.try_get_node_as::<Node3D>(&context.get_player_scene());
+
+        let (Some(pivot), Some(player), Some(player_scene)) =
+            (pivot.clone(), player.clone(), player_scene.clone())
+        else {
+            godot_print!("pivot: {pivot:?}");
+            godot_print!("player: {player:?}");
+            godot_print!("player_scene: {player_scene:?}");
+
+            panic!("Could not get nodes");
+        };
+
+        let Some(animator) =
+            player_scene.try_get_node_as::<AnimationPlayer>(context.get_animation_player().arg())
+        else {
+            godot_print!("Couldn't get animator");
+            panic!("Could not get animator");
+        };
+
+        context.player_node = Some(player);
+        context.pivot_node = Some(pivot);
+        context.player_scene_node = Some(player_scene);
+        context.animator = Some(animator);
+    }
+
     pub fn set_context(&mut self, context: Gd<MovementContext>) -> &mut Self {
         self.context = context;
+        self.get_nodes();
 
         self
     }
