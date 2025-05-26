@@ -37,15 +37,16 @@ struct WalkingNodes {
 }
 
 impl Walking {
-    fn get_nodes(
-        context: Gd<MovementContext>,
-        machine_node: Gd<CharacterBody3D>,
-    ) -> anyhow::Result<WalkingNodes> {
-        let context = context.bind();
+    // TODO: Clean this function up so that it doesn't have all these panic!() calls
+    fn get_nodes(mut context: Gd<MovementContext>) -> anyhow::Result<WalkingNodes> {
+        let context = context.bind_mut();
+        let scene_tree = context
+            .get_scene_tree()
+            .expect("Need to set_scene_tree() on MovementContext first");
 
-        let pivot = machine_node.try_get_node_as::<Camera>(&context.get_pivot());
-        let player = machine_node.try_get_node_as::<CharacterBody3D>(&context.get_player());
-        let player_scene = machine_node.try_get_node_as::<Node3D>(&context.get_player_scene());
+        let pivot = scene_tree.try_get_node_as::<Camera>(&context.get_pivot());
+        let player = scene_tree.try_get_node_as::<CharacterBody3D>(&context.get_player());
+        let player_scene = scene_tree.try_get_node_as::<Node3D>(&context.get_player_scene());
 
         let (Some(pivot), Some(player), Some(player_scene)) =
             (pivot.clone(), player.clone(), player_scene.clone())
@@ -120,15 +121,14 @@ impl Walking {
 impl State for Walking {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
-    type Subject = Gd<CharacterBody3D>;
 
-    fn new(context: Self::Context, machine_node: Self::Subject) -> Self {
+    fn new(context: Self::Context) -> Self {
         let Ok(WalkingNodes {
             pivot,
             player,
             player_scene,
             animator,
-        }) = Walking::get_nodes(context.clone(), machine_node.clone())
+        }) = Walking::get_nodes(context.clone())
         else {
             godot_print!("Could not get walking nodes");
             panic!("wtf");
@@ -167,7 +167,7 @@ impl State for Walking {
 
     fn process(&mut self, _delta: f32) {}
 
-    fn process_physics(&mut self, _delta: f32) {
+    fn physics_process(&mut self, _delta: f32) {
         let input = Input::singleton();
 
         self.instant_velocity = Vector3::ZERO;

@@ -1,6 +1,10 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use godot::global::godot_print;
+use godot::{
+    classes::INode3D,
+    global::godot_print,
+    prelude::{GodotClass, godot_api},
+};
 use idle::Idle;
 use loot_state::LootState;
 
@@ -17,12 +21,11 @@ pub mod idle;
 pub mod inspect;
 pub mod loot_state;
 
-type DynState = Box<
-    dyn State<Context = Rc<LootContext>, StatesEnum = LootState, Subject = Rc<RefCell<Inventory>>>,
->;
+type DynState = Box<dyn State<Context = Rc<LootContext>, StatesEnum = LootState>>;
 type StateMap = HashMap<LootState, DynState>;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, GodotClass)]
+#[class(init, base = Node3D)]
 pub struct LootMachine {
     context: Rc<LootContext>,
     states: StateMap,
@@ -62,7 +65,6 @@ impl LootContext {
 impl FiniteStateMachine for LootMachine {
     type StatesEnum = LootState;
     type Context = Rc<LootContext>;
-    type Subject = Rc<RefCell<Inventory>>;
 
     fn ready(&mut self) {
         godot_print!("[LootMachine] ready()");
@@ -76,20 +78,11 @@ impl FiniteStateMachine for LootMachine {
         context: Self::Context,
     ) -> std::collections::HashMap<
         Self::StatesEnum,
-        Box<
-            dyn super::State<
-                    Context = Self::Context,
-                    StatesEnum = Self::StatesEnum,
-                    Subject = Self::Subject,
-                >,
-        >,
+        Box<dyn super::State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
     > {
         let mut states: StateMap = HashMap::new();
 
-        self.register_state(
-            Box::new(Idle::new(context.clone(), self.inventory.clone())),
-            &mut states,
-        );
+        self.register_state(Box::new(Idle::new(context.clone())), &mut states);
         godot_print!("[LootMachine] Registered Idle state");
 
         states
@@ -115,13 +108,7 @@ impl FiniteStateMachine for LootMachine {
         &mut self,
     ) -> &mut std::collections::HashMap<
         Self::StatesEnum,
-        Box<
-            dyn super::State<
-                    Context = Self::Context,
-                    StatesEnum = Self::StatesEnum,
-                    Subject = Self::Subject,
-                >,
-        >,
+        Box<dyn super::State<Context = Self::Context, StatesEnum = Self::StatesEnum>>,
     > {
         &mut self.states
     }

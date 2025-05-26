@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use godot::{
     builtin::Vector2,
-    classes::{AnimationPlayer, CharacterBody3D, Input, Node3D},
+    classes::{AnimationPlayer, Input, Node3D},
     global::godot_print,
     obj::Gd,
 };
@@ -28,13 +28,21 @@ struct IdleNodes {
 }
 
 impl Idle {
-    fn get_nodes(
-        context: Gd<MovementContext>,
-        player_3_d: Gd<CharacterBody3D>,
-    ) -> anyhow::Result<IdleNodes> {
+    fn get_nodes(context: Gd<MovementContext>) -> anyhow::Result<IdleNodes> {
         let context = context.bind();
+        godot_print!("[Idle::get_nodes] context: {context:?}");
 
-        let player_scene = player_3_d.try_get_node_as::<Node3D>(&context.get_player_scene());
+        let scene_tree = context
+            .get_scene_tree()
+            .expect("Need to set_scene_tree() on MovementContext first");
+
+        godot_print!("[Idle::get_nodes scene_tree: {scene_tree:?}]");
+
+        let player_scene_path = context.player_scene.clone();
+        godot_print!("[Idle::get_nodes player_scene_path: {player_scene_path}]");
+
+        let player_scene = scene_tree.try_get_node_as::<Node3D>(&player_scene_path);
+        godot_print!("[Idle::get_nodes player_scene: {player_scene:?}]");
 
         let Some(player_scene) = player_scene.clone() else {
             godot_print!("player: {player_scene:?}");
@@ -57,11 +65,11 @@ impl Idle {
 impl State for Idle {
     type StatesEnum = MovementStates;
     type Context = Gd<MovementContext>;
-    type Subject = Gd<CharacterBody3D>;
 
-    fn new(context: Self::Context, character_body: Self::Subject) -> Self {
-        let Ok(IdleNodes { animator }) = Idle::get_nodes(context.clone(), character_body) else {
-            panic!("Could not get idle state nodes");
+    fn new(context: Self::Context) -> Self {
+        let Ok(IdleNodes { animator }) = Idle::get_nodes(context.clone()) else {
+            godot_print!("Could not get idle state nodes");
+            panic!("something happened");
         };
 
         Idle {
@@ -86,6 +94,7 @@ impl State for Idle {
     fn enter(&mut self) {
         godot_print!("Entering Idle state...");
         self.set_next_state(MovementStates::Idle);
+
         self.animator.stop();
     }
 
@@ -106,7 +115,7 @@ impl State for Idle {
 
     fn process(&mut self, _delta: f32) {}
 
-    fn process_physics(&mut self, _delta: f32) {}
+    fn physics_process(&mut self, _delta: f32) {}
 
     fn exit(&mut self) {
         godot_print!("Exiting Idle state...");

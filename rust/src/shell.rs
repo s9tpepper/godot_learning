@@ -1,7 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use godot::{
-    builtin::Vector3,
+    builtin::{NodePath, Vector3},
     classes::{INode3D, IRigidBody3D, Node, Node3D, PackedScene, RigidBody3D},
     global::godot_print,
     meta::ToGodot,
@@ -17,6 +17,7 @@ use crate::{
         states::lootable::{LootContext, LootMachine},
     },
     player::Player3D,
+    states::movement::MovementMachine,
 };
 
 #[derive(GodotClass)]
@@ -85,11 +86,7 @@ impl INode3D for Shell {
         let player = load::<PackedScene>("res://scenes/player/player.tscn")
             .instantiate()
             .unwrap();
-
-        let player_3d = player.clone().try_cast::<Player3D>();
-        if let Ok(player3d) = player_3d {
-            godot_print!("Player context: {:?}", player3d.bind().get_context());
-        }
+        godot_print!("[shell.rs] player: {player:?}");
 
         #[allow(clippy::option_map_unit_fn)]
         self.base_mut()
@@ -101,6 +98,28 @@ impl INode3D for Shell {
             });
 
         self.level = Some(level);
+
+        let player3d = player
+            .clone()
+            .try_cast::<Player3D>()
+            .expect("Player3D should exist");
+
+        // NOTE: Move this machine creation to some State Machine manager level
+        let movement_machine = self.base_mut().get_node_as::<MovementMachine>(
+            &NodePath::from_str("MovementMachine").expect("node path"),
+        );
+        movement_machine
+            .clone()
+            .bind_mut()
+            .set_context(
+                player3d
+                    .bind()
+                    .get_context()
+                    .expect("context to exist")
+                    .clone(),
+            )
+            .set_scene_tree(player.clone());
+        godot_print!("Movement machine: {movement_machine}");
 
         // Add spheres for testing
         let test_sphere = load::<PackedScene>("res://test_sphere.tscn");

@@ -1,16 +1,13 @@
 use godot::classes::base_material_3d::Feature;
-use godot::classes::notify::Node3DNotification;
 use godot::classes::{
-    AudioStreamPlayer3D, Camera3D, CharacterBody3D, CsgMesh3D, ICharacterBody3D, InputEvent,
+    AudioStreamPlayer3D, Camera3D, CharacterBody3D, CsgMesh3D, ICharacterBody3D,
     PhysicsRayQueryParameters3D, StandardMaterial3D,
 };
 use godot::obj::WithBaseField;
 use godot::prelude::*;
 use rand::Rng;
 
-use crate::common::finite_state_machine::FiniteStateMachine;
 use crate::common::proximity_detector::ProximityDetector;
-use crate::states::movement::MovementMachine;
 use crate::states::movement::context::MovementContext;
 
 pub type StateContext = Gd<MovementContext>;
@@ -22,7 +19,6 @@ pub struct Player3D {
     #[export]
     context: Option<StateContext>,
     base: Base<CharacterBody3D>,
-    movement_machine: Option<MovementMachine>,
     selected_item: Option<Gd<StandardMaterial3D>>,
 }
 
@@ -142,22 +138,6 @@ impl ICharacterBody3D for Player3D {
     fn ready(&mut self) {
         let base = self.base().clone();
 
-        if let Some(context) = &self.context {
-            godot_print!("[Player3D::process()] Starting state machine...");
-
-            // TODO: invert this instantiation into shell.rs
-            let mut movement_machine = MovementMachine::new(context.clone(), base.clone());
-            movement_machine.ready();
-
-            self.movement_machine = Some(movement_machine);
-            godot_print!(
-                "[Player3D::process()] Set self.state_machine to {:?}",
-                self.movement_machine
-            );
-        } else {
-            godot_print!("tree: {base:?}, context: {:?}", self.context);
-        }
-
         // NOTE: Test code to test ProximityDetector component
         if let Some(ref mut items_detector) =
             base.try_get_node_as::<ProximityDetector>("ItemsDetector")
@@ -254,43 +234,8 @@ impl ICharacterBody3D for Player3D {
         }
     }
 
-    // Called every frame.
-    fn process(&mut self, delta: f64) {
-        let Some(ref mut machine) = self.movement_machine else {
-            godot_print!("[Player3D::process()] Unable to get state machine reference");
-            return;
-        };
-
-        machine.process(delta);
-    }
-
-    // Called every physics frame.
-    fn physics_process(&mut self, delta: f64) {
-        let Some(ref mut machine) = self.movement_machine else {
-            godot_print!("[Player3D::physics_process()] Unable to get state machine reference");
-            return;
-        };
-
-        machine.process_physics(delta);
-
-        // self.check_collisions_by_mouse_position();
-    }
-
     // String representation of the object.
     fn to_string(&self) -> GString {
         GString::from("Player3D")
     }
-
-    // Handle user input.
-    fn input(&mut self, event: Gd<InputEvent>) {
-        let Some(ref mut machine) = self.movement_machine else {
-            godot_print!("[Player3D::input()] Unable to get state machine reference");
-            return;
-        };
-
-        machine.input(event);
-    }
-
-    // Handle lifecycle notifications.
-    fn on_notification(&mut self, _what: Node3DNotification) {}
 }

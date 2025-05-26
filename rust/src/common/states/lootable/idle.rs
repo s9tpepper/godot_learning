@@ -1,38 +1,31 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
-use godot::{
-    classes::{InputEvent, InputEventMouseButton},
-    global::godot_print,
-    obj::Gd,
-};
+use godot::{classes::InputEvent, obj::Gd};
 
-use crate::common::{inventory::Inventory, states::State};
+use crate::common::states::State;
 
 use super::{LootContext, loot_state::LootState};
 
 #[derive(Debug)]
 pub struct Idle {
     context: Rc<LootContext>,
-    inventory: Rc<RefCell<Inventory>>,
-    next_state: Option<LootState>,
 }
 
-impl Idle {}
+impl Idle {
+    pub fn new(context: Rc<LootContext>) -> Self {
+        Idle { context }
+    }
+}
 
 impl State for Idle {
     type StatesEnum = LootState;
     type Context = Rc<LootContext>;
-    type Subject = Rc<RefCell<Inventory>>;
 
-    fn new(context: Self::Context, inventory: Self::Subject) -> Self
+    fn new(context: Self::Context) -> Self
     where
         Self: Sized,
     {
-        Idle {
-            context,
-            inventory,
-            next_state: None,
-        }
+        todo!()
     }
 
     fn get_state_name(&self) -> Self::StatesEnum {
@@ -40,28 +33,30 @@ impl State for Idle {
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {
-        self.next_state = Some(state);
+        todo!()
     }
 
     fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
-        self.next_state.clone()
+        todo!()
     }
 
     fn enter(&mut self) {
-        godot_print!("Loot entering idle state");
+        todo!()
     }
 
     fn input(&mut self, event: Gd<InputEvent>) {
-        godot_print!("Loot:Idle input()");
-        let mouse_button_event = event.try_cast::<InputEventMouseButton>();
-        if let Ok(_mouse_button_event) = mouse_button_event {
-            godot_print!("sphere was clicked?");
-        }
+        todo!()
     }
 
-    fn process(&mut self, delta: f32) {}
+    fn process(&mut self, delta: f32) {
+        todo!()
+    }
 
-    fn process_physics(&mut self, delta: f32) {}
+    fn physics_process(&mut self, delta: f32) {
+        todo!()
+    }
 
-    fn exit(&mut self) {}
+    fn exit(&mut self) {
+        todo!()
+    }
 }

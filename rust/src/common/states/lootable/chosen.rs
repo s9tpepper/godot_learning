@@ -1,6 +1,6 @@
 use godot::{classes::InputEvent, obj::Gd};
 
-use crate::common::{inventory::Inventory, states::State};
+use crate::common::states::State;
 
 use super::{LootContext, loot_state::LootState};
 
@@ -10,9 +10,8 @@ pub struct Chosen {}
 impl State for Chosen {
     type StatesEnum = LootState;
     type Context = LootContext;
-    type Subject = Inventory;
 
-    fn new(context: Self::Context, subject: Self::Subject) -> Self
+    fn new(context: Self::Context) -> Self
     where
         Self: Sized,
     {
@@ -43,7 +42,7 @@ impl State for Chosen {
         todo!()
     }
 
-    fn process_physics(&mut self, delta: f32) {
+    fn physics_process(&mut self, delta: f32) {
         todo!()
     }
 

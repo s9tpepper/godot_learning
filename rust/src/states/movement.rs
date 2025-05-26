@@ -5,56 +5,50 @@ pub mod walking;
 
 use std::collections::HashMap;
 
-use godot::{classes::CharacterBody3D, global::godot_print, obj::Gd};
+use context::MovementContext;
+use godot::{
+    classes::{Node, Node3D},
+    global::godot_print,
+    obj::{Base, Gd},
+    prelude::{GodotClass, godot_api},
+};
 
 use crate::{
-    common::{finite_state_machine::FiniteStateMachine, states::State},
+    common::{self, finite_state_machine::FiniteStateMachine, states::State},
+    impl_inode3d_for_fsm,
     player::StateContext,
     states::movement::{idle::Idle, movement_states::MovementStates, walking::Walking},
 };
 
-type DynState = Box<
-    dyn State<Context = StateContext, StatesEnum = MovementStates, Subject = Gd<CharacterBody3D>>,
->;
+type DynState = Box<dyn State<Context = StateContext, StatesEnum = MovementStates>>;
 type StateMap = HashMap<MovementStates, DynState>;
 
-#[derive(Debug)]
+#[derive(Debug, GodotClass)]
+#[class(init, base = Node3D)]
 pub struct MovementMachine {
+    base: Base<Node3D>,
+
     context: StateContext,
-    player_3_d: Gd<CharacterBody3D>,
-
     states: StateMap,
-
     transitioning: bool,
 
     #[allow(unused)]
     current_state: MovementStates,
 }
 
+impl_inode3d_for_fsm!(MovementMachine);
+
 impl MovementMachine {
-    pub fn new(context: StateContext, player_3_d: Gd<CharacterBody3D>) -> Self {
-        MovementMachine {
-            context,
-            player_3_d,
-            states: HashMap::default(),
-            current_state: MovementStates::Idle,
-            transitioning: false,
-        }
+    pub fn set_context(&mut self, context: Gd<MovementContext>) -> &mut Self {
+        self.context = context;
+
+        self
     }
 
-    fn register_state(&mut self, state: DynState, states: &mut StateMap) {
-        let state_name = state.get_state_name();
-        states.insert(state_name, state);
-    }
-}
+    pub fn set_scene_tree(&mut self, scene_tree: Gd<Node>) {
+        godot_print!("[MovementMachine::ready()] scene_tree: {scene_tree:?}");
 
-impl FiniteStateMachine for MovementMachine {
-    type StatesEnum = MovementStates;
-    type Context = StateContext;
-    type Subject = Gd<CharacterBody3D>;
-
-    fn ready(&mut self) {
-        godot_print!("[MovementMachine::ready()]");
+        self.context.bind_mut().set_scene_tree(scene_tree);
 
         self.states = self.setup_states(self.context.clone());
 
@@ -68,23 +62,29 @@ impl FiniteStateMachine for MovementMachine {
         godot_print!("[MovementMachine::ready()] - Switched to Idle");
     }
 
+    fn register_state(&mut self, state: DynState, states: &mut StateMap) {
+        let state_name = state.get_state_name();
+        states.insert(state_name, state);
+    }
+}
+
+impl FiniteStateMachine for MovementMachine {
+    type StatesEnum = MovementStates;
+    type Context = StateContext;
+
+    fn ready(&mut self) {}
+
     fn setup_states(&mut self, context: Self::Context) -> StateMap {
         godot_print!("[MovementMachine::setup_states()]");
 
         let mut states: StateMap = HashMap::new();
 
-        self.register_state(
-            Box::new(Idle::new(context.clone(), self.player_3_d.clone())),
-            &mut states,
-        );
+        self.register_state(Box::new(Idle::new(context.clone())), &mut states);
         godot_print!("Created idle state");
 
-        self.register_state(
-            Box::new(Walking::new(context.clone(), self.player_3_d.clone())),
-            &mut states,
-        );
-        // godot_print!("Created walking state");
-        //
+        self.register_state(Box::new(Walking::new(context.clone())), &mut states);
+        godot_print!("Created walking state");
+
         states
     }
 
