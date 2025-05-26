@@ -1,18 +1,15 @@
-use godot::{
-    classes::{CharacterBody3D, InputEvent},
-    obj::Gd,
-};
+use godot::{classes::InputEvent, obj::Gd};
 
 use crate::common::{inventory::Inventory, states::State};
 
-use super::{LootableContext, lootable_states::LootableStates};
+use super::{LootContext, loot_state::LootState};
 
 #[derive(Debug)]
 pub struct Chosen {}
 
 impl State for Chosen {
-    type StatesEnum = LootableStates;
-    type Context = LootableContext;
+    type StatesEnum = LootState;
+    type Context = LootContext;
     type Subject = Inventory;
 
     fn new(context: Self::Context, subject: Self::Subject) -> Self
@@ -23,7 +20,7 @@ impl State for Chosen {
     }
 
     fn get_state_name(&self) -> Self::StatesEnum {
-        LootableStates::Chosen
+        LootState::Chosen
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {

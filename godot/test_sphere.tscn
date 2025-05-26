@@ -11,7 +11,7 @@ render_priority = 5
 emission = Color(0.701961, 1, 0, 1)
 emission_energy_multiplier = 10.14
 
-[node name="RigidBody3D" type="RigidBody3D"]
+[node name="RigidBody3D" type="TestItem"]
 mass = 231.72
 constant_force = Vector3(0.01, 10, 0)
 

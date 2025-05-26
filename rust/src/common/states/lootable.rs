@@ -1,9 +1,13 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use godot::global::godot_print;
 use idle::Idle;
-use lootable_states::LootableStates;
+use loot_state::LootState;
 
-use crate::common::{finite_state_machine::FiniteStateMachine, inventory::Inventory};
+use crate::common::{
+    finite_state_machine::FiniteStateMachine,
+    inventory::{Inventory, InventorySlot},
+};
 
 use super::State;
 
@@ -11,28 +15,29 @@ pub mod chosen;
 pub mod hover;
 pub mod idle;
 pub mod inspect;
-pub mod lootable_states;
+pub mod loot_state;
 
-type DynState =
-    Box<dyn State<Context = LootableContext, StatesEnum = LootableStates, Subject = Inventory>>;
-type StateMap = HashMap<LootableStates, DynState>;
+type DynState = Box<
+    dyn State<Context = Rc<LootContext>, StatesEnum = LootState, Subject = Rc<RefCell<Inventory>>>,
+>;
+type StateMap = HashMap<LootState, DynState>;
 
-#[derive(Debug)]
-struct Lootable {
-    context: LootableContext,
+#[derive(Default, Debug)]
+pub struct LootMachine {
+    context: Rc<LootContext>,
     states: StateMap,
-    current_state: LootableStates,
+    current_state: LootState,
     transitioning: bool,
     inventory: Rc<RefCell<Inventory>>,
 }
 
-impl Lootable {
-    pub fn new(context: LootableContext, inventory: Rc<RefCell<Inventory>>) -> Self {
-        Lootable {
+impl LootMachine {
+    pub fn new(context: Rc<LootContext>, inventory: Rc<RefCell<Inventory>>) -> Self {
+        LootMachine {
             context,
             inventory,
             states: HashMap::default(),
-            current_state: LootableStates::Idle,
+            current_state: LootState::Idle,
             transitioning: false,
         }
     }
@@ -43,17 +48,27 @@ impl Lootable {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct LootableContext {}
+#[derive(Default, Debug)]
+pub struct LootContext {
+    item: InventorySlot,
+}
 
-impl FiniteStateMachine for Lootable {
-    type StatesEnum = LootableStates;
-    type Context = LootableContext;
-    type Subject = Inventory;
+impl LootContext {
+    pub fn new(item: InventorySlot) -> Self {
+        LootContext { item }
+    }
+}
+
+impl FiniteStateMachine for LootMachine {
+    type StatesEnum = LootState;
+    type Context = Rc<LootContext>;
+    type Subject = Rc<RefCell<Inventory>>;
 
     fn ready(&mut self) {
+        godot_print!("[LootMachine] ready()");
         self.states = self.setup_states(self.context.clone());
-        self.set_current_state(LootableStates::Idle);
+        self.set_current_state(LootState::Idle);
+        godot_print!("[LootMachine] ready() done.");
     }
 
     fn setup_states(
@@ -65,7 +80,7 @@ impl FiniteStateMachine for Lootable {
             dyn super::State<
                     Context = Self::Context,
                     StatesEnum = Self::StatesEnum,
-                    Subject = Inventory,
+                    Subject = Self::Subject,
                 >,
         >,
     > {
@@ -75,30 +90,25 @@ impl FiniteStateMachine for Lootable {
             Box::new(Idle::new(context.clone(), self.inventory.clone())),
             &mut states,
         );
+        godot_print!("[LootMachine] Registered Idle state");
 
-        // self.register_state(
-        //     Box::new(Walking::new(context.clone(), self.player_3_d.clone())),
-        //     &mut states,
-        // );
-        // godot_print!("Created walking state");
-        //
         states
     }
 
     fn get_current_state(&self) -> Self::StatesEnum {
-        todo!()
+        self.current_state.clone()
     }
 
     fn set_current_state(&mut self, state: Self::StatesEnum) {
-        todo!()
+        self.current_state = state;
     }
 
     fn set_transitioning(&mut self, in_transition: bool) {
-        todo!()
+        self.transitioning = in_transition;
     }
 
     fn get_transitioning(&self) -> bool {
-        todo!()
+        self.transitioning
     }
 
     fn get_states_map(
@@ -113,6 +123,6 @@ impl FiniteStateMachine for Lootable {
                 >,
         >,
     > {
-        todo!()
+        &mut self.states
     }
 }

@@ -35,7 +35,7 @@ impl INode3D for Camera {
     // Handle user input.
     fn input(&mut self, event: Gd<InputEvent>) {
         let input = Input::singleton();
-        if input.get_mouse_mode() == MouseMode::CONFINED {
+        if input.get_mouse_mode() != MouseMode::CAPTURED {
             return;
         }
 

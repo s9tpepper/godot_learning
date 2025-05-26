@@ -1,17 +1,23 @@
 use std::{cell::RefCell, rc::Rc};
 
-//uid://bbynqotbuicfn // test_scene.tscn
 use godot::{
     builtin::Vector3,
-    classes::{INode3D, Node, Node3D, PackedScene},
-    global::godot_print_rich,
+    classes::{INode3D, IRigidBody3D, Node, Node3D, PackedScene, RigidBody3D},
+    global::godot_print,
     meta::ToGodot,
-    obj::{Base, Gd, WithBaseField},
+    obj::{Base, Gd, NewAlloc, WithBaseField},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
 
-use crate::common::inventory::{Inventory, InventoryItem, InventorySlot, ItemCategory};
+use crate::{
+    common::{
+        finite_state_machine::FiniteStateMachine,
+        inventory::{Inventory, InventoryItem, InventorySlot, ItemCategory},
+        states::lootable::{LootContext, LootMachine},
+    },
+    player::Player3D,
+};
 
 #[derive(GodotClass)]
 #[class(base=Node3D, init)]
@@ -19,12 +25,20 @@ struct Shell {
     base: Base<Node3D>,
     level: Option<Gd<Node>>,
     inventory: Option<Rc<RefCell<Inventory>>>,
-    // inventory: Inventory,
+    test_loot_machines: Vec<LootMachine>,
 }
 
-#[derive(Debug)]
-struct TestItem {}
-impl InventoryItem for TestItem {
+#[derive(Debug, GodotClass)]
+#[class(init, base = RigidBody3D)]
+pub struct TestItem {
+    #[base]
+    base: Base<RigidBody3D>,
+}
+
+#[godot_api]
+impl IRigidBody3D for TestItem {}
+
+impl InventoryItem for Gd<TestItem> {
     fn get_name(&self) -> String {
         "TestItem".into()
     }
@@ -36,10 +50,6 @@ impl InventoryItem for TestItem {
     fn get_max_stack_size(&self) -> i32 {
         10
     }
-
-    fn clone(&self) -> Box<dyn InventoryItem> {
-        Box::new(TestItem {})
-    }
 }
 
 #[godot_api]
@@ -48,18 +58,20 @@ impl INode3D for Shell {
         // NOTE: This will move eventually to some kind of top level systems
         // manager of some kind
 
-        let mut inventory = Inventory::new();
-        let test_item = TestItem {};
-        let mut slot = InventorySlot::new(Some(Box::new(test_item)), 5);
-        inventory.add(&mut slot);
+        let inventory = Inventory::new();
+        // let test_item = TestItem {};
+        // let mut slot = InventorySlot::new(Some(Box::new(test_item)), 5);
+        // inventory.add(&mut slot);
 
-        let test_item = TestItem {};
-        let mut slot = InventorySlot::new(Some(Box::new(test_item)), 13);
-        inventory.add(&mut slot);
+        let test_item = TestItem::new_alloc();
 
-        godot_print_rich!("inventory: {inventory:?}");
+        // inventory.add(&mut slot);
 
-        self.inventory = Some(Rc::new(RefCell::new(inventory)));
+        let inventory_rc = Rc::new(RefCell::new(inventory));
+
+        self.test_loot_machines = vec![];
+
+        self.inventory = Some(inventory_rc.clone());
 
         // self.inventory = Inventory::new();
 
@@ -73,6 +85,11 @@ impl INode3D for Shell {
         let player = load::<PackedScene>("res://scenes/player/player.tscn")
             .instantiate()
             .unwrap();
+
+        let player_3d = player.clone().try_cast::<Player3D>();
+        if let Ok(player3d) = player_3d {
+            godot_print!("Player context: {:?}", player3d.bind().get_context());
+        }
 
         #[allow(clippy::option_map_unit_fn)]
         self.base_mut()
@@ -92,7 +109,16 @@ impl INode3D for Shell {
             let mut sphere: Gd<Node3D> = sphere.try_cast().unwrap();
 
             sphere.set_position(Vector3::UP * i as f32 * 10.);
-            self.level.clone().expect("xx").add_child(&sphere);
+            self.level.clone().expect("xx").add_child(&sphere.clone());
+
+            godot_print!("Creating inventory slot...");
+            let slot = InventorySlot::new(Some(Box::new(test_item.clone())), 13);
+            let loot_context_rc = Rc::new(LootContext::new(slot));
+            let mut item_loot_machine = LootMachine::new(loot_context_rc, inventory_rc.clone());
+            item_loot_machine.ready();
+            godot_print!("Finished creating inventory slot.");
+
+            self.test_loot_machines.push(item_loot_machine);
         }
     }
 }

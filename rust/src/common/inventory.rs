@@ -20,7 +20,7 @@ pub enum ItemCategory {
 
 // #[derive(GodotClass, Default, Debug)]
 // #[class(init, base=Object)]
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Inventory {
     max_slots: usize,
     slots: Vec<InventorySlot>,
@@ -108,7 +108,7 @@ impl Inventory {
         godot_print!("empty slots: {empty_item_slots:?}");
 
         for empty_slot in empty_item_slots.iter_mut() {
-            let item_clone: Box<dyn InventoryItem> = new_item.item.as_mut().expect("").clone();
+            let item_clone: Box<dyn InventoryItem> = new_item.item.take()?;
             empty_slot.item = Some(item_clone);
 
             add_item_to_slot(new_item, empty_slot);
@@ -132,5 +132,4 @@ pub trait InventoryItem: std::fmt::Debug {
     fn get_name(&self) -> String;
     fn get_category(&self) -> ItemCategory;
     fn get_max_stack_size(&self) -> i32;
-    fn clone(&self) -> Box<dyn InventoryItem>;
 }

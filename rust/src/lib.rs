@@ -2,6 +2,7 @@ use godot::init::gdextension;
 
 mod actions;
 mod debug;
+mod items;
 mod motion_signals;
 mod movement;
 mod movement_animations;

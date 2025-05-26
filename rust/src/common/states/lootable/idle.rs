@@ -1,67 +1,67 @@
 use std::{cell::RefCell, rc::Rc};
 
 use godot::{
-    classes::{CharacterBody3D, InputEvent},
+    classes::{InputEvent, InputEventMouseButton},
+    global::godot_print,
     obj::Gd,
 };
 
 use crate::common::{inventory::Inventory, states::State};
 
-use super::{LootableContext, lootable_states::LootableStates};
+use super::{LootContext, loot_state::LootState};
 
 #[derive(Debug)]
 pub struct Idle {
-    context: LootableContext,
+    context: Rc<LootContext>,
     inventory: Rc<RefCell<Inventory>>,
+    next_state: Option<LootState>,
 }
 
-impl Idle {
-    pub fn new(context: LootableContext, inventory: Rc<RefCell<Inventory>>) -> Self {
-        Idle { context, inventory }
-    }
-}
+impl Idle {}
 
 impl State for Idle {
-    type StatesEnum = LootableStates;
-    type Context = LootableContext;
-    type Subject = Inventory;
+    type StatesEnum = LootState;
+    type Context = Rc<LootContext>;
+    type Subject = Rc<RefCell<Inventory>>;
 
-    fn new(context: Self::Context, subject: Self::Subject) -> Self
+    fn new(context: Self::Context, inventory: Self::Subject) -> Self
     where
         Self: Sized,
     {
-        todo!()
+        Idle {
+            context,
+            inventory,
+            next_state: None,
+        }
     }
 
     fn get_state_name(&self) -> Self::StatesEnum {
-        LootableStates::Inspect
+        LootState::Inspect
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {
-        todo!()
+        self.next_state = Some(state);
     }
 
     fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
-        todo!()
+        self.next_state.clone()
     }
 
     fn enter(&mut self) {
-        todo!()
+        godot_print!("Loot entering idle state");
     }
 
     fn input(&mut self, event: Gd<InputEvent>) {
-        todo!()
+        godot_print!("Loot:Idle input()");
+        let mouse_button_event = event.try_cast::<InputEventMouseButton>();
+        if let Ok(_mouse_button_event) = mouse_button_event {
+            godot_print!("sphere was clicked?");
+        }
     }
 
-    fn process(&mut self, delta: f32) {
-        todo!()
-    }
+    fn process(&mut self, delta: f32) {}
 
-    fn process_physics(&mut self, delta: f32) {
-        todo!()
-    }
+    fn process_physics(&mut self, delta: f32) {}
 
-    fn exit(&mut self) {
-        todo!()
-    }
+    fn exit(&mut self) {}
 }

@@ -2,14 +2,14 @@ use godot::{classes::InputEvent, obj::Gd};
 
 use crate::common::{inventory::Inventory, states::State};
 
-use super::{LootableContext, lootable_states::LootableStates};
+use super::{LootContext, loot_state::LootState};
 
 #[derive(Debug)]
 pub struct Hover {}
 
 impl State for Hover {
-    type StatesEnum = LootableStates;
-    type Context = LootableContext;
+    type StatesEnum = LootState;
+    type Context = LootContext;
     type Subject = Inventory;
 
     fn new(context: Self::Context, subject: Self::Subject) -> Self
@@ -20,7 +20,7 @@ impl State for Hover {
     }
 
     fn get_state_name(&self) -> Self::StatesEnum {
-        LootableStates::Hover
+        LootState::Hover
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {

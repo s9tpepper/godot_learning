@@ -78,6 +78,7 @@ impl Player3D {
         let window = base.get_window().expect("there should be a window");
 
         let position = window.get_mouse_position();
+        // godot_print!("test loot machines: {:?}", self.test_loot_machines);
 
         let context = self.get_context().expect("Context should exist");
         let camera_path = context.bind().get_camera();
@@ -144,6 +145,7 @@ impl ICharacterBody3D for Player3D {
         if let Some(context) = &self.context {
             godot_print!("[Player3D::process()] Starting state machine...");
 
+            // TODO: invert this instantiation into shell.rs
             let mut movement_machine = MovementMachine::new(context.clone(), base.clone());
             movement_machine.ready();
 
