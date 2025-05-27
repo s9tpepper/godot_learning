@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use context::MovementContext;
 use godot::{
-    classes::{AnimationPlayer, Node, Node3D},
+    classes::{AnimationPlayer, CharacterBody3D, Node, Node3D},
     global::godot_print,
     obj::{Base, Gd},
     prelude::{GodotClass, godot_api},
@@ -39,6 +39,15 @@ pub struct MovementMachine {
 impl_inode3d_for_fsm!(MovementMachine);
 
 impl MovementMachine {
+    pub fn start(&mut self, context: Gd<MovementContext>, scene_tree: Gd<Node>) {
+        self.context = context;
+        self.context.bind_mut().set_scene_tree(scene_tree);
+        self.get_nodes();
+
+        self.states = self.setup_states(self.context.clone());
+        self.set_current_state(MovementStates::Idle);
+    }
+
     fn get_nodes(&mut self) {
         let mut context = self.context.bind_mut();
         let scene_tree = context
@@ -46,7 +55,7 @@ impl MovementMachine {
             .expect("Need to set_scene_tree() on MovementContext first");
 
         let pivot = scene_tree.try_get_node_as::<Node3D>(&context.get_pivot());
-        let player = scene_tree.try_get_node_as::<Node3D>(&context.get_player());
+        let player = scene_tree.try_get_node_as::<CharacterBody3D>(&context.get_player());
         let player_scene = scene_tree.try_get_node_as::<Node3D>(&context.get_player_scene());
 
         let (Some(pivot), Some(player), Some(player_scene)) =
@@ -70,30 +79,6 @@ impl MovementMachine {
         context.pivot_node = Some(pivot);
         context.player_scene_node = Some(player_scene);
         context.animator = Some(animator);
-    }
-
-    pub fn set_context(&mut self, context: Gd<MovementContext>) -> &mut Self {
-        self.context = context;
-        self.get_nodes();
-
-        self
-    }
-
-    pub fn set_scene_tree(&mut self, scene_tree: Gd<Node>) {
-        godot_print!("[MovementMachine::ready()] scene_tree: {scene_tree:?}");
-
-        self.context.bind_mut().set_scene_tree(scene_tree);
-
-        self.states = self.setup_states(self.context.clone());
-
-        godot_print!(
-            "[MovementMachine::ready()] - Set up states. {:?}",
-            self.states
-        );
-
-        self.set_current_state(MovementStates::Idle);
-
-        godot_print!("[MovementMachine::ready()] - Switched to Idle");
     }
 
     fn register_state(&mut self, state: DynState, states: &mut StateMap) {

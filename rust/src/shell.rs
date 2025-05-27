@@ -108,17 +108,13 @@ impl INode3D for Shell {
         let movement_machine = self.base_mut().get_node_as::<MovementMachine>(
             &NodePath::from_str("MovementMachine").expect("node path"),
         );
-        movement_machine
-            .clone()
-            .bind_mut()
-            .set_context(
-                player3d
-                    .bind()
-                    .get_context()
-                    .expect("context to exist")
-                    .clone(),
-            )
-            .set_scene_tree(player.clone());
+        let context = player3d
+            .bind()
+            .get_context()
+            .expect("context to exist")
+            .clone();
+        movement_machine.clone().bind_mut().start(context, player);
+
         godot_print!("Movement machine: {movement_machine}");
 
         // Add spheres for testing
