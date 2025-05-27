@@ -6,6 +6,9 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]  # Compile this crate to a dynamic C library.
 
+[build]
+rustflags = ["-g", "--opt-level=1"]
+
 [dependencies]
 anyhow = "1.0.98"
 # godot = "0.2.4"
