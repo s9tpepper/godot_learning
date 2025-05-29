@@ -1,10 +1,6 @@
 use std::cmp::min;
 
-use godot::{
-    classes::IObject,
-    global::godot_print,
-    prelude::{GodotClass, godot_api},
-};
+use godot::global::godot_print;
 
 #[derive(PartialEq, Eq)]
 pub enum ItemCategory {
@@ -18,21 +14,16 @@ pub enum ItemCategory {
     Resources,
 }
 
-// #[derive(GodotClass, Default, Debug)]
-// #[class(init, base=Object)]
 #[derive(Default, Debug)]
 pub struct Inventory {
     max_slots: usize,
     slots: Vec<InventorySlot>,
 }
 
-// #[godot_api]
-// impl IObject for Inventory {}
-
 #[derive(Default, Debug)]
 pub struct InventorySlot {
-    item: Option<Box<dyn InventoryItem>>,
-    count: i32,
+    pub item: Option<Box<dyn InventoryItem>>,
+    pub count: i32,
 }
 
 impl InventorySlot {

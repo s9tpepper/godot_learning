@@ -1,6 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://bct30wpiumkcn"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_klxca"]
+resource_local_to_scene = true
 radius = 0.51
 
 [sub_resource type="SphereMesh" id="SphereMesh_klxca"]

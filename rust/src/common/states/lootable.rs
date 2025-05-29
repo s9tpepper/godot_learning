@@ -1,16 +1,22 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use godot::{
-    classes::INode3D,
+    builtin::Vector3,
+    classes::{CollisionObject3D, InputEvent, Node},
     global::godot_print,
+    obj::Gd,
     prelude::{GodotClass, godot_api},
 };
+
 use idle::Idle;
 use loot_state::LootState;
 
-use crate::common::{
-    finite_state_machine::FiniteStateMachine,
-    inventory::{Inventory, InventorySlot},
+use crate::{
+    common::{
+        finite_state_machine::FiniteStateMachine,
+        inventory::{Inventory, InventorySlot},
+    },
+    impl_inode3d_for_fsm,
 };
 
 use super::State;
@@ -21,28 +27,47 @@ pub mod idle;
 pub mod inspect;
 pub mod loot_state;
 
-type DynState = Box<dyn State<Context = Rc<LootContext>, StatesEnum = LootState>>;
+pub type LootMachineContext = Rc<RefCell<LootContext>>;
+
+type DynState = Box<dyn State<Context = LootMachineContext, StatesEnum = LootState>>;
+
 type StateMap = HashMap<LootState, DynState>;
+
+#[derive(Default, Debug)]
+pub struct LootContext {
+    inventory_slot: InventorySlot,
+    inventory: Rc<RefCell<Inventory>>,
+    collision_object: Option<Gd<CollisionObject3D>>,
+}
+
+impl LootContext {
+    pub fn new(
+        inventory_slot: InventorySlot,
+        inventory: Rc<RefCell<Inventory>>,
+        collision_object: Gd<CollisionObject3D>,
+    ) -> Self {
+        LootContext {
+            inventory_slot,
+            inventory,
+            collision_object: Some(collision_object),
+        }
+    }
+}
 
 #[derive(Default, Debug, GodotClass)]
 #[class(init, base = Node3D)]
 pub struct LootMachine {
-    context: Rc<LootContext>,
+    context: LootMachineContext,
     states: StateMap,
     current_state: LootState,
     transitioning: bool,
-    inventory: Rc<RefCell<Inventory>>,
 }
 
+impl_inode3d_for_fsm!(LootMachine);
+
 impl LootMachine {
-    pub fn new(context: Rc<LootContext>, inventory: Rc<RefCell<Inventory>>) -> Self {
-        LootMachine {
-            context,
-            inventory,
-            states: HashMap::default(),
-            current_state: LootState::Idle,
-            transitioning: false,
-        }
+    pub fn start(&mut self, context: LootMachineContext) {
+        self.context = context;
     }
 
     fn register_state(&mut self, state: DynState, states: &mut StateMap) {
@@ -51,26 +76,14 @@ impl LootMachine {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct LootContext {
-    item: InventorySlot,
-}
-
-impl LootContext {
-    pub fn new(item: InventorySlot) -> Self {
-        LootContext { item }
-    }
-}
-
 impl FiniteStateMachine for LootMachine {
     type StatesEnum = LootState;
-    type Context = Rc<LootContext>;
+    type Context = LootMachineContext;
 
     fn ready(&mut self) {
-        godot_print!("[LootMachine] ready()");
         self.states = self.setup_states(self.context.clone());
         self.set_current_state(LootState::Idle);
-        godot_print!("[LootMachine] ready() done.");
+        self.transition_to_state(LootState::Idle);
     }
 
     fn setup_states(
@@ -82,7 +95,9 @@ impl FiniteStateMachine for LootMachine {
     > {
         let mut states: StateMap = HashMap::new();
 
-        self.register_state(Box::new(Idle::new(context.clone())), &mut states);
+        let idle_state = Idle::new(context);
+        self.register_state(Box::new(idle_state), &mut states);
+
         godot_print!("[LootMachine] Registered Idle state");
 
         states
@@ -93,6 +108,8 @@ impl FiniteStateMachine for LootMachine {
     }
 
     fn set_current_state(&mut self, state: Self::StatesEnum) {
+        godot_print!("LootMachine::set_current_state: {state:?}");
+
         self.current_state = state;
     }
 

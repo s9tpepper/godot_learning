@@ -10,12 +10,16 @@ pub trait State: std::fmt::Debug {
     fn new(context: Self::Context) -> Self
     where
         Self: Sized;
+
     fn get_state_name(&self) -> Self::StatesEnum;
     fn set_next_state(&mut self, state: Self::StatesEnum);
     fn get_next_state(&mut self) -> Option<Self::StatesEnum>;
-    fn enter(&mut self);
-    fn input(&mut self, event: Gd<InputEvent>);
-    fn process(&mut self, delta: f32);
-    fn physics_process(&mut self, delta: f32);
-    fn exit(&mut self);
+
+    fn enter(&mut self) {}
+    fn exit(&mut self) {}
+
+    // Godot methods
+    fn input(&mut self, event: Gd<InputEvent>) {}
+    fn process(&mut self, delta: f32) {}
+    fn physics_process(&mut self, delta: f32) {}
 }

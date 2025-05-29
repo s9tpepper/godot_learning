@@ -2,7 +2,10 @@ use std::{cell::RefCell, rc::Rc, str::FromStr};
 
 use godot::{
     builtin::{NodePath, Vector3},
-    classes::{INode3D, IRigidBody3D, Node, Node3D, PackedScene, RigidBody3D},
+    classes::{
+        CollisionObject3D, INode3D, IRigidBody3D, InputEvent, Node, Node3D, PackedScene,
+        RigidBody3D,
+    },
     global::godot_print,
     meta::ToGodot,
     obj::{Base, Gd, NewAlloc, WithBaseField},
@@ -12,7 +15,6 @@ use godot::{
 
 use crate::{
     common::{
-        finite_state_machine::FiniteStateMachine,
         inventory::{Inventory, InventoryItem, InventorySlot, ItemCategory},
         states::lootable::{LootContext, LootMachine},
     },
@@ -37,11 +39,15 @@ pub struct TestItem {
 }
 
 #[godot_api]
-impl IRigidBody3D for TestItem {}
+impl IRigidBody3D for TestItem {
+    fn ready(&mut self) {}
+
+    fn input(&mut self, _event: Gd<InputEvent>) {}
+}
 
 impl InventoryItem for Gd<TestItem> {
     fn get_name(&self) -> String {
-        "TestItem".into()
+        format!("TestItem {}", self.instance_id())
     }
 
     fn get_category(&self) -> ItemCategory {
@@ -63,8 +69,6 @@ impl INode3D for Shell {
         // let test_item = TestItem {};
         // let mut slot = InventorySlot::new(Some(Box::new(test_item)), 5);
         // inventory.add(&mut slot);
-
-        let test_item = TestItem::new_alloc();
 
         // inventory.add(&mut slot);
 
@@ -119,21 +123,28 @@ impl INode3D for Shell {
 
         // Add spheres for testing
         let test_sphere = load::<PackedScene>("res://test_sphere.tscn");
-        for i in 1..10 {
+        for i in 1..=2 {
             let sphere = test_sphere.instantiate().unwrap();
-            let mut sphere: Gd<Node3D> = sphere.try_cast().unwrap();
+            let mut sphere = sphere.clone().try_cast::<CollisionObject3D>().unwrap();
+            let inventory_item = sphere.clone().try_cast::<TestItem>().unwrap();
 
             sphere.set_position(Vector3::UP * i as f32 * 10.);
             self.level.clone().expect("xx").add_child(&sphere.clone());
 
             godot_print!("Creating inventory slot...");
-            let slot = InventorySlot::new(Some(Box::new(test_item.clone())), 13);
-            let loot_context_rc = Rc::new(LootContext::new(slot));
-            let mut item_loot_machine = LootMachine::new(loot_context_rc, inventory_rc.clone());
-            item_loot_machine.ready();
-            godot_print!("Finished creating inventory slot.");
+            let slot = InventorySlot::new(Some(Box::new(inventory_item.clone())), 13);
+            let loot_context_rc = Rc::new(RefCell::new(LootContext::new(
+                slot,
+                inventory_rc.clone(),
+                sphere.clone(),
+            )));
 
-            self.test_loot_machines.push(item_loot_machine);
+            // TODO: Re-do start() for LootMachine
+            let mut item_loot_machine = LootMachine::new_alloc();
+            item_loot_machine.bind_mut().start(loot_context_rc);
+            self.base_mut().add_child(&item_loot_machine);
+
+            godot_print!("Finished creating inventory slot.");
         }
     }
 }

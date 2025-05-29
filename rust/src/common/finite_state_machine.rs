@@ -18,19 +18,21 @@ macro_rules! impl_inode3d_for_fsm {
         #[godot_api]
         impl godot::classes::INode3D for $machine {
             fn ready(&mut self) {
-                common::finite_state_machine::FiniteStateMachine::ready(self);
+                $crate::common::finite_state_machine::FiniteStateMachine::ready(self);
             }
 
             fn input(&mut self, event: godot::obj::Gd<godot::classes::InputEvent>) {
-                common::finite_state_machine::FiniteStateMachine::input(self, event);
+                $crate::common::finite_state_machine::FiniteStateMachine::input(self, event);
             }
 
             fn process(&mut self, delta: f64) {
-                common::finite_state_machine::FiniteStateMachine::process(self, delta);
+                $crate::common::finite_state_machine::FiniteStateMachine::process(self, delta);
             }
 
             fn physics_process(&mut self, delta: f64) {
-                common::finite_state_machine::FiniteStateMachine::physics_process(self, delta);
+                $crate::common::finite_state_machine::FiniteStateMachine::physics_process(
+                    self, delta,
+                );
             }
         }
     };

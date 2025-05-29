@@ -3,7 +3,6 @@ use std::sync::LazyLock;
 use godot::{
     builtin::Vector2,
     classes::{AnimationPlayer, Input},
-    global::godot_print,
     obj::Gd,
 };
 
