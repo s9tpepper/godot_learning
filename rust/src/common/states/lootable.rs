@@ -8,6 +8,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
 };
 
+use hover::Hover;
 use idle::Idle;
 use loot_state::LootState;
 
@@ -95,8 +96,11 @@ impl FiniteStateMachine for LootMachine {
     > {
         let mut states: StateMap = HashMap::new();
 
-        let idle_state = Idle::new(context);
+        let idle_state = Idle::new(context.clone());
         self.register_state(Box::new(idle_state), &mut states);
+
+        let hover_state = Hover::new(context);
+        self.register_state(Box::new(hover_state), &mut states);
 
         godot_print!("[LootMachine] Registered Idle state");
 

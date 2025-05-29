@@ -15,7 +15,7 @@ use super::{LootMachineContext, loot_state::LootState};
 pub struct Idle {
     context: LootMachineContext,
     next_state: Rc<RefCell<Option<LootState>>>,
-
+    connected: bool,
     active: Rc<RefCell<bool>>,
 }
 
@@ -28,6 +28,7 @@ impl State for Idle {
             context,
             next_state: Rc::new(RefCell::new(None)),
             active: Rc::new(RefCell::new(false)),
+            connected: false,
         }
     }
 
@@ -36,16 +37,40 @@ impl State for Idle {
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {
-        self.next_state = Rc::new(RefCell::new(Some(state)));
+        let mut borrow = self.next_state.try_borrow_mut();
+        if let Ok(next_state) = &mut borrow {
+            **next_state = Some(state);
+        }
     }
 
     fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
         self.next_state.try_borrow().unwrap().clone()
     }
 
+    fn exit(&mut self) {
+        self.set_next_state(LootState::Idle);
+
+        let mut borrow = self.active.try_borrow_mut();
+        if let Ok(active) = &mut borrow {
+            **active = false;
+        }
+
+        godot_print!("disabled idle state");
+    }
+
+    // TODO: Get rid of all of these unwraps everywhere
     fn enter(&mut self) {
         {
-            *self.active.try_borrow_mut().unwrap() = true;
+            let mut borrow = self.active.try_borrow_mut();
+            if let Ok(active) = &mut borrow {
+                **active = true;
+            }
+
+            godot_print!("enabled idle state");
+        }
+
+        if self.connected {
+            return;
         }
 
         let context = self.context.clone();
@@ -56,24 +81,33 @@ impl State for Idle {
                 idle_listener.bind_mut().next_state = self.next_state.clone();
                 idle_listener.bind_mut().active = self.active.clone();
 
-                collision_object.signals().input_event().connect_obj(
+                collision_object.signals().mouse_entered().connect_obj(
                     &idle_listener,
-                    |this: &mut IdleListener, _, event: Gd<InputEvent>, _, _, _| {
+                    |this: &mut IdleListener| {
                         // NOTE: Using this active bool to stop the state changes
                         // because godot-rust does not yet have a disconnect()
                         // function for the input_event() signal implemented
-                        let active = { this.active.try_borrow().unwrap() };
-                        if !*active {
+                        let active = {
+                            let mut borrow = this.active.try_borrow_mut();
+                            if let Ok(active) = &mut borrow {
+                                **active
+                            } else {
+                                false
+                            }
+                        };
+
+                        if !active {
                             return;
                         }
 
-                        let event = event.try_cast::<InputEventMouseMotion>();
-                        if event.is_ok() {
-                            *this.next_state.try_borrow_mut().unwrap() = Some(LootState::Hover);
-                            *this.active.try_borrow_mut().unwrap() = false;
+                        let mut borrow = this.next_state.try_borrow_mut();
+                        if let Ok(next_state) = &mut borrow {
+                            **next_state = Some(LootState::Hover);
                         }
                     },
                 );
+
+                self.connected = true;
             }
         } else {
             godot_print!("Could not borrow context in LootState::Idle");
