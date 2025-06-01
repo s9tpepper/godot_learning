@@ -22,4 +22,6 @@ pub trait State: std::fmt::Debug {
     fn input(&mut self, event: Gd<InputEvent>) {}
     fn process(&mut self, delta: f32) {}
     fn physics_process(&mut self, delta: f32) {}
+
+    fn destroy(&mut self) {}
 }

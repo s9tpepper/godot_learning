@@ -1,9 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use godot::{
-    classes::{INode3D, InputEvent, InputEventMouseMotion, Node3D},
+    classes::{INode3D, Node3D},
     global::godot_print,
-    obj::{Base, Gd, NewAlloc},
+    obj::{Base, NewAlloc},
     prelude::{GodotClass, godot_api},
 };
 
@@ -30,6 +30,12 @@ impl State for Idle {
             active: Rc::new(RefCell::new(false)),
             connected: false,
         }
+    }
+
+    fn destroy(&mut self) {
+        let _ = self.next_state.take();
+        let _ = self.active.take();
+        let _ = self.context.take();
     }
 
     fn get_state_name(&self) -> Self::StatesEnum {
@@ -77,6 +83,10 @@ impl State for Idle {
         if let Ok(mut context) = context.try_borrow_mut() {
             if let Some(ref mut collision_object) = context.collision_object {
                 let mut idle_listener = IdleListener::new_alloc();
+
+                // TODO: Switch the active/connected logic to
+                // toggle the process_mode of the collider object
+                // collision_object.set_process_mode(mode);
 
                 idle_listener.bind_mut().next_state = self.next_state.clone();
                 idle_listener.bind_mut().active = self.active.clone();

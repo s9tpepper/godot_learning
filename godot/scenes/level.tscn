@@ -1,6 +1,6 @@
 [gd_scene load_steps=11 format=3 uid="uid://cv1auxkntu6f8"]
 
-[ext_resource type="PackedScene" uid="uid://bct30wpiumkcn" path="res://test_sphere.tscn" id="1_w7c3h"]
+[ext_resource type="PackedScene" uid="uid://bct30wpiumkcn" path="res://test_npc.tscn" id="1_w7c3h"]
 [ext_resource type="Material" uid="uid://o8ug5yeamwk3" path="res://materials/debug_sphere_material.tres" id="2_w8frs"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_u52ul"]

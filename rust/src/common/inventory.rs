@@ -33,7 +33,13 @@ impl InventorySlot {
 }
 
 fn add_item_to_slot<'a>(new_slot: &'a mut InventorySlot, slot: &'a mut InventorySlot) {
-    let max_stack_size = new_slot.item.as_ref().expect("item").get_max_stack_size();
+    godot_print!("add_item_to_slot()");
+
+    let max_stack_size = new_slot
+        .item
+        .as_ref()
+        .expect("Expect slot to always have item")
+        .get_max_stack_size();
     godot_print!("max_stack_size: {max_stack_size}");
 
     let fit_in_slot = min(max_stack_size - slot.count, new_slot.count);
@@ -43,10 +49,14 @@ fn add_item_to_slot<'a>(new_slot: &'a mut InventorySlot, slot: &'a mut Inventory
     godot_print!("remainder: {remainder}");
 
     slot.count += fit_in_slot;
-    new_slot.count = remainder;
 
-    godot_print!("slot.count: {}", slot.count);
-    godot_print!("new_item.count: {}", new_slot.count);
+    godot_print!(
+        "Update new_slot.count ({}) to remainder({})",
+        new_slot.count,
+        remainder
+    );
+
+    new_slot.count = remainder;
 }
 
 impl Inventory {
@@ -62,6 +72,15 @@ impl Inventory {
     }
 
     pub fn add<'a>(&mut self, new_item: &'a mut InventorySlot) -> Option<&'a mut InventorySlot> {
+        godot_print!("add() - new_item: {new_item:?}");
+        godot_print!("add() - new_item.item: {:?}", new_item.item);
+        if new_item.item.is_some() {
+            let the_item = new_item.item.as_ref().unwrap();
+
+            godot_print!("add() - the_item: {:?}", the_item);
+            godot_print!("add() - the_item.name: {:?}", the_item.get_name());
+        }
+
         let item_type = new_item.item.as_ref().expect("item").get_name().clone();
         godot_print!("item_type: {item_type}");
 
@@ -99,8 +118,13 @@ impl Inventory {
         godot_print!("empty slots: {empty_item_slots:?}");
 
         for empty_slot in empty_item_slots.iter_mut() {
-            let item_clone: Box<dyn InventoryItem> = new_item.item.take()?;
+            godot_print!("Filling an empty slot");
+
+            let item_clone: Box<dyn InventoryItem> = new_item.item.as_ref().unwrap().get_boxed();
+            godot_print!("got boxed clone");
+
             empty_slot.item = Some(item_clone);
+            godot_print!("updated empty slot");
 
             add_item_to_slot(new_item, empty_slot);
 
@@ -116,6 +140,7 @@ impl Inventory {
         None
     }
 
+    // TODO: Implement remove for when you destroy or use an item
     pub fn remove(&mut self, _item: impl InventoryItem) {}
 }
 
@@ -123,4 +148,7 @@ pub trait InventoryItem: std::fmt::Debug {
     fn get_name(&self) -> String;
     fn get_category(&self) -> ItemCategory;
     fn get_max_stack_size(&self) -> i32;
+    // TODO: Fix this to be what it should be to retrieve a texture
+    fn get_icon(&self) -> String;
+    fn get_boxed(&self) -> Box<dyn InventoryItem>;
 }

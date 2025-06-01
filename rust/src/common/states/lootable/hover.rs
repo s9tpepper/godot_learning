@@ -32,6 +32,12 @@ impl State for Hover {
         }
     }
 
+    fn destroy(&mut self) {
+        let _ = self.next_state.take();
+        let _ = self.active.take();
+        let _ = self.context.take();
+    }
+
     fn get_state_name(&self) -> Self::StatesEnum {
         LootState::Hover
     }
@@ -101,10 +107,12 @@ impl State for Hover {
                         }
 
                         let event = event.try_cast::<InputEventMouseButton>();
-                        if event.is_ok() {
-                            let mut borrow = this.next_state.try_borrow_mut();
-                            if let Ok(next_state) = &mut borrow {
-                                **next_state = Some(LootState::Inspect);
+                        if let Ok(event) = event {
+                            if event.is_released() {
+                                let mut borrow = this.next_state.try_borrow_mut();
+                                if let Ok(next_state) = &mut borrow {
+                                    **next_state = Some(LootState::Inspect);
+                                }
                             }
                         }
                     },

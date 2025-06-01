@@ -5,5 +5,6 @@ pub enum LootState {
     Hover,
     Inspect,
     Chosen,
+    Destroy,
     // Expired, ??
 }

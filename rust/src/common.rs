@@ -4,3 +4,4 @@ pub mod inventory;
 pub mod mouse;
 pub mod proximity_detector;
 pub mod states;
+pub mod ui;

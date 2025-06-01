@@ -6,6 +6,7 @@ mod items;
 mod motion_signals;
 mod movement;
 mod movement_animations;
+mod npc;
 mod player;
 mod shell;
 mod states;
