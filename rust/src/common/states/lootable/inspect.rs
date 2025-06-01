@@ -1,8 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use godot::{
+    builtin::Vector2,
     classes::{INode3D, InputEvent, InputEventMouseButton, Node3D},
     global::godot_print,
+    meta::ToGodot,
     obj::{Base, Gd, NewAlloc},
     prelude::{GodotClass, godot_api},
 };
@@ -35,6 +37,10 @@ impl Inspect {
             let mut menu = LootMenu::new_alloc();
             menu.set_visible(false);
 
+            // NOTE: put this off screen so it doesn't flicker from top
+            // left corner into it's actual position first
+            menu.set_position(Vector2::new(-10000., -10000.));
+
             let inventory = context.inventory.clone();
             let collision_object = context.collision_object.as_mut().unwrap();
             if !collision_object.is_instance_valid() {
@@ -55,6 +61,7 @@ impl Inspect {
                     }
                 });
 
+            self.update_menu_position();
             if let Some(ref mut collision_object) = context.collision_object {
                 collision_object.add_sibling(&menu);
             } else {
@@ -69,8 +76,6 @@ impl Inspect {
                     godot_print!("Could not borrow menu refcell to update with new menu");
                 }
             }
-
-            self.update_menu_position();
 
             // TODO: figure out why this still flickers from 0,0, to position
             // even if hidden earlier
@@ -103,6 +108,7 @@ impl Inspect {
 
                     let menu_position = camera.unproject_position(collider.get_position());
                     menu.as_mut().unwrap().set_position(menu_position);
+                    menu.as_mut().unwrap().queue_redraw();
                 } else {
                     // TODO:  kill this thing if collider isn't valid
                 }
