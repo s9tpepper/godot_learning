@@ -19,9 +19,9 @@ pub trait State: std::fmt::Debug {
     fn exit(&mut self) {}
 
     // Godot methods
-    fn input(&mut self, event: Gd<InputEvent>) {}
-    fn process(&mut self, delta: f32) {}
-    fn physics_process(&mut self, delta: f32) {}
+    fn input(&mut self, _event: Gd<InputEvent>) {}
+    fn process(&mut self, _delta: f32) {}
+    fn physics_process(&mut self, _delta: f32) {}
 
     fn destroy(&mut self) {}
 }

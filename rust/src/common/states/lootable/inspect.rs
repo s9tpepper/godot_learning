@@ -1,123 +1,143 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 
 use godot::{
     builtin::Vector2,
     classes::{INode3D, InputEvent, InputEventMouseButton, Node3D},
-    global::godot_print,
-    meta::ToGodot,
+    global::{godot_error, godot_print},
     obj::{Base, Gd, NewAlloc},
     prelude::{GodotClass, godot_api},
 };
+use thiserror::Error;
 
 use crate::common::{states::State, ui::loot_menu::LootMenu};
 
 use super::{LootContext, LootMachineContext, loot_state::LootState};
 
+#[derive(Error, Debug)]
+pub enum InspectError<'a> {
+    #[error("The Viewport is missing a camera, get_camera_3d() returned None")]
+    CameraMissing,
+    #[error("The CollisionObject3D is missing a Viewport, get_viewport() returned None")]
+    ViewportMissing,
+    #[error("The CollisionObject3D is missing from the LootContext")]
+    CollisionObjectMissing,
+    #[error("The `{0}` was already borrowed")]
+    AlreadyBorrowed(&'a str),
+    #[error("The menu was None when as_mut() was invoked")]
+    MenuShouldNotBeNone,
+    #[error("The collider instance has been freed and is no longer valid")]
+    ColliderInstanceInvalid,
+}
+
 #[derive(Debug)]
 pub struct Inspect {
     context: LootMachineContext,
     next_state: Rc<RefCell<Option<LootState>>>,
-    connected: bool,
     active: Rc<RefCell<bool>>,
     menu: Rc<RefCell<Option<Gd<LootMenu>>>>,
     mouse_hovering: Rc<RefCell<bool>>,
     trigger_menu: Rc<RefCell<bool>>,
+    connected: bool,
     destroyed: bool,
 }
 
 impl Inspect {
-    fn create_menu(&mut self) {
-        let context = self.context.clone();
-        if let Ok(mut context) = context.try_borrow_mut() {
-            if context.collision_object.is_none() {
-                return;
-            }
-
-            let slots = context.inventory_slots.clone();
-            let mut menu = LootMenu::new_alloc();
-            menu.set_visible(false);
-
-            // NOTE: put this off screen so it doesn't flicker from top
-            // left corner into it's actual position first
-            menu.set_position(Vector2::new(-10000., -10000.));
-
-            let inventory = context.inventory.clone();
-            let collision_object = context.collision_object.as_mut().unwrap();
-            if !collision_object.is_instance_valid() {
-                return;
-            }
-
-            menu.bind_mut()
-                .set_options(slots, inventory, collision_object.clone());
-            menu.bind_mut().mouse_hovering = self.mouse_hovering.clone();
-
-            let listener = self.get_signal_listener();
-            menu.signals()
-                .option_clicked()
-                .connect_obj(&listener, |this: &mut InspectListener| {
-                    let next_state_borrow = this.next_state.try_borrow_mut();
-                    if let Ok(mut next_state) = next_state_borrow {
-                        *next_state = Some(LootState::Destroy);
-                    }
-                });
-
-            self.update_menu_position();
-            if let Some(ref mut collision_object) = context.collision_object {
-                collision_object.add_sibling(&menu);
-            } else {
-                godot_print!("Could not get collider");
-            }
-
-            {
-                let menu_borrow = self.menu.try_borrow_mut();
-                if let Ok(mut menu_ref) = menu_borrow {
-                    *menu_ref = Some(menu.clone());
-                } else {
-                    godot_print!("Could not borrow menu refcell to update with new menu");
+    fn add_menu_listener(&self, menu: &mut Gd<LootMenu>) {
+        let listener = self.get_signal_listener();
+        menu.signals()
+            .option_clicked()
+            .connect_obj(&listener, |this: &mut InspectListener| {
+                let next_state_borrow = this.next_state.try_borrow_mut();
+                if let Ok(mut next_state) = next_state_borrow {
+                    *next_state = Some(LootState::Destroy);
                 }
-            }
-
-            // TODO: figure out why this still flickers from 0,0, to position
-            // even if hidden earlier
-            menu.set_visible(true);
-        } else {
-            godot_print!("Could not get context");
-        }
+            });
     }
 
-    fn update_menu_position(&mut self) {
-        let menu_borrow = self.menu.try_borrow_mut();
-        let Ok(mut menu) = menu_borrow else { return };
-
-        if menu.is_none() {
-            godot_print!("No menu to update");
-            return;
-        }
-
+    fn create_menu(&mut self) -> Result<(), InspectError> {
         let context = self.context.clone();
 
-        if let Ok(mut context) = context.try_borrow_mut() {
-            if let Some(ref mut collider) = context.collision_object {
-                if collider.is_instance_valid() {
-                    let camera = collider
-                        .clone()
-                        .get_viewport()
-                        .unwrap()
-                        .get_camera_3d()
-                        .unwrap();
+        let menu_refcell = self.menu.clone();
+        let mut menu_option = menu_refcell
+            .try_borrow_mut()
+            .map_err(|_| InspectError::AlreadyBorrowed("Menu"))?;
 
-                    let menu_position = camera.unproject_position(collider.get_position());
-                    menu.as_mut().unwrap().set_position(menu_position);
-                    menu.as_mut().unwrap().queue_redraw();
-                } else {
-                    // TODO:  kill this thing if collider isn't valid
-                }
-            } else {
-                godot_print!("Could not get collider");
-            }
-        } else {
-            godot_print!("Could not get context");
+        let context = context
+            .try_borrow_mut()
+            .map_err(|_| InspectError::AlreadyBorrowed("Context"))?;
+
+        let inventory = context.inventory.clone();
+        let slots = context.inventory_slots.clone();
+        let mut collider = context
+            .collision_object
+            .clone()
+            .ok_or(InspectError::CollisionObjectMissing)?;
+
+        if !collider.is_instance_valid() {
+            return Err(InspectError::ColliderInstanceInvalid);
         }
+
+        let mut menu = LootMenu::new_alloc();
+        *menu_option = Some(menu.clone());
+        drop(menu_option);
+        drop(context);
+
+        menu.set_visible(false);
+
+        // NOTE: put this off screen so it doesn't flicker from top
+        // left corner into it's actual position first
+        menu.set_position(Vector2::new(-10000., -10000.));
+
+        menu.bind_mut()
+            .set_options(slots, inventory, collider.clone());
+        menu.bind_mut().mouse_hovering = self.mouse_hovering.clone();
+
+        collider.add_sibling(&menu);
+
+        self.add_menu_listener(&mut menu);
+        self.update_menu_position()?;
+
+        menu.set_visible(true);
+
+        Ok(())
+    }
+
+    fn update_menu_position(&mut self) -> Result<(), InspectError> {
+        let mut menu_option = self
+            .menu
+            .try_borrow_mut()
+            .map_err(|_| InspectError::AlreadyBorrowed("Menu"))?;
+
+        let menu = menu_option
+            .as_mut()
+            .ok_or(InspectError::MenuShouldNotBeNone)?;
+
+        let context = self
+            .context
+            .try_borrow_mut()
+            .map_err(|_| InspectError::AlreadyBorrowed("Context"))?;
+
+        let collider = context
+            .collision_object
+            .clone()
+            .ok_or(InspectError::CollisionObjectMissing)?;
+
+        let viewport = collider
+            .get_viewport()
+            .ok_or(InspectError::ViewportMissing)?;
+
+        let camera = viewport
+            .get_camera_3d()
+            .ok_or(InspectError::CameraMissing)?;
+
+        let menu_position = camera.unproject_position(collider.get_position());
+        menu.set_position(menu_position);
+        menu.queue_redraw();
+
+        Ok(())
     }
 
     fn get_signal_listener(&self) -> Gd<InspectListener> {
@@ -130,6 +150,101 @@ impl Inspect {
         listener.bind_mut().menu = self.menu.clone();
 
         listener
+    }
+
+    fn set_active(&mut self) {
+        let borrow = self.active.try_borrow_mut();
+        match borrow {
+            Ok(mut active) => {
+                *active = true;
+            }
+            Err(error) => godot_error!("{error}"),
+        }
+    }
+
+    fn set_trigger(&mut self, trigger: bool) {
+        let trigger_borrow = self.trigger_menu.try_borrow_mut();
+
+        match trigger_borrow {
+            Ok(mut trigger_ref) => {
+                *trigger_ref = trigger;
+            }
+            Err(error) => godot_error!("{error}"),
+        }
+    }
+
+    fn add_mouse_entered_listener(&mut self, context: &mut RefMut<LootContext>) {
+        let listener = self.get_signal_listener();
+
+        match &mut context.collision_object {
+            Some(collision_object) => {
+                collision_object.signals().mouse_entered().connect_obj(
+                    &listener,
+                    |this: &mut InspectListener| {
+                        match this.mouse_hovering.try_borrow_mut() {
+                            Ok(mut hovering) => {
+                                *hovering = true;
+                            },
+                            Err(error) => godot_error!("The mouse_hovering ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
+                        }
+
+                        match this.trigger_menu.try_borrow_mut() {
+                            Ok(mut trigger) => {
+                                *trigger = true;
+                            },
+                            Err(error) => godot_error!("The trigger_menu ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
+                        }
+                    },
+                );
+            }
+
+            None => godot_error!(
+                "CollisionObject3D is missing, can not add mouse entered listener for menu"
+            ),
+        }
+    }
+
+    fn add_mouse_exited_listener(&mut self, context: &mut RefMut<LootContext>) {
+        let listener = self.get_signal_listener();
+
+        match &mut context.collision_object {
+            Some(collision_object) => {
+                collision_object.signals().mouse_entered().connect_obj(
+                    &listener,
+                    |this: &mut InspectListener| {
+                        match this.mouse_hovering.try_borrow_mut() {
+                            Ok(mut hovering) => {
+                                *hovering = false;
+                            },
+                            Err(error) => godot_error!("The mouse_hovering ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
+                        }
+                    },
+                );
+            }
+
+            None => godot_error!(
+                "CollisionObject3D is missing, can not add mouse entered listener for menu"
+            ),
+        }
+    }
+
+    fn check_out_of_bounds_click(
+        &mut self,
+        mouse_event: Gd<InputEventMouseButton>,
+        mouse_hovering: Ref<bool>,
+        mut menu: RefMut<Option<Gd<LootMenu>>>,
+    ) {
+        if mouse_event.is_released() && !*mouse_hovering && menu.is_some() {
+            match *menu {
+                Some(ref mut loot_menu) => {
+                    loot_menu.queue_free();
+                    *menu = None;
+                }
+                None => godot_error!("Loot menu is None, could not close menu"),
+            }
+
+            self.set_next_state(LootState::Idle);
+        }
     }
 }
 
@@ -175,100 +290,58 @@ impl State for Inspect {
     }
 
     fn exit(&mut self) {
-        self.set_next_state(LootState::Inspect);
-
-        let mut borrow = self.active.try_borrow_mut();
+        let active_refcell = self.active.clone();
+        let mut borrow = active_refcell.try_borrow_mut();
         if let Ok(active) = &mut borrow {
             **active = false;
         }
 
+        self.set_next_state(LootState::Inspect);
+
         godot_print!("disabled idle state");
     }
 
-    // TODO: Get rid of all of these unwraps everywhere
     fn enter(&mut self) {
-        {
-            let mut borrow = self.active.try_borrow_mut();
-            if let Ok(active) = &mut borrow {
-                **active = true;
-            }
-
-            godot_print!("enabled inspect state");
-        }
+        self.set_active();
 
         if self.connected {
             return;
         }
 
-        {
-            let trigger_borrow = self.trigger_menu.try_borrow_mut();
-            if let Ok(mut trigger) = trigger_borrow {
-                *trigger = true;
+        self.set_trigger(true);
+
+        let context_refcell = self.context.clone();
+
+        match context_refcell.try_borrow_mut() {
+            Ok(mut ctx) => {
+                self.add_mouse_entered_listener(&mut ctx);
+                self.add_mouse_exited_listener(&mut ctx);
             }
-        }
-
-        let context_borrow = self.context.try_borrow_mut();
-        if let Ok(mut context) = context_borrow {
-            let listener = self.get_signal_listener();
-
-            if let Some(ref mut collision_object) = context.collision_object {
-                collision_object.signals().mouse_entered().connect_obj(
-                    &listener,
-                    |this: &mut InspectListener| {
-                        let mouse_hovering_borrow = this.mouse_hovering.try_borrow_mut();
-                        if let Ok(mut mouse_hovering) = mouse_hovering_borrow {
-                            *mouse_hovering = true;
-
-                            let trigger_borrow = this.trigger_menu.try_borrow_mut();
-                            if let Ok(mut trigger) = trigger_borrow {
-                                *trigger = true;
-                            }
-                        }
-                    },
-                );
-
-                collision_object.signals().mouse_exited().connect_obj(
-                    &listener,
-                    |this: &mut InspectListener| {
-                        let mouse_hovering_borrow = this.mouse_hovering.try_borrow_mut();
-                        if let Ok(mut mouse_hovering) = mouse_hovering_borrow {
-                            *mouse_hovering = false;
-                        }
-                    },
-                );
-            }
-        }
+            Err(error) => godot_error!("{error}"),
+        };
     }
 
     fn input(&mut self, event: Gd<InputEvent>) {
         let mouse_button_event = event.try_cast::<InputEventMouseButton>();
-        if let Ok(mouse_event) = mouse_button_event {
-            godot_print!("Mouse button event");
 
-            let mouse_hovering_borrow = self.mouse_hovering.try_borrow();
-            if let Ok(mouse_hovering) = mouse_hovering_borrow {
-                let menu_borrow = self.menu.try_borrow_mut();
-                let Ok(mut menu) = menu_borrow else { return };
+        if mouse_button_event.is_err() {
+            return;
+        }
 
-                godot_print!("menu: {menu:?}, hovering: {mouse_hovering}");
+        let mouse_event = mouse_button_event.unwrap();
+        let mouse_hovering_refcell = self.mouse_hovering.clone();
+        let menu_refcell = self.menu.clone();
 
-                if mouse_event.is_released() && !*mouse_hovering && menu.is_some() {
-                    godot_print!("Mouse released and mouse not hovering, closing menu...");
-
-                    // close the menu
-                    let Some(ref mut loot_menu) = *menu else {
-                        return;
-                    };
-                    loot_menu.queue_free();
-                    *menu = None;
-
-                    // move to Idle state
-                    let next_state_borrow = self.next_state.try_borrow_mut();
-                    let Ok(mut next_state) = next_state_borrow else {
-                        return;
-                    };
-                    *next_state = Some(LootState::Idle);
+        match mouse_hovering_refcell.try_borrow() {
+            Ok(mouse_hovering) => match menu_refcell.try_borrow_mut() {
+                Ok(menu) => self.check_out_of_bounds_click(mouse_event, mouse_hovering, menu),
+                Err(borrow_mut_error) => {
+                    godot_error!("Could not borrow mut the menu: {borrow_mut_error}")
                 }
+            },
+
+            Err(borrow_error) => {
+                godot_error!("Could not borrow mouse_hovering reference: {borrow_error}")
             }
         }
     }
@@ -294,13 +367,17 @@ impl State for Inspect {
             if *trigger && is_none {
                 *trigger = false;
 
-                self.create_menu();
+                if let Err(error) = self.create_menu() {
+                    godot_error!("{error}");
+                }
             }
         }
     }
 
     fn physics_process(&mut self, _delta: f32) {
-        self.update_menu_position();
+        if let Err(error) = self.update_menu_position() {
+            godot_error!("{error}");
+        }
     }
 }
 
