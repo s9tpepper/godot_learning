@@ -9,7 +9,7 @@ use godot::{
         CollisionObject3D, IPanelContainer, InputEvent, PackedScene, PanelContainer, VBoxContainer,
         control::SizeFlags,
     },
-    global::godot_print,
+    global::{godot_error, godot_print},
     obj::{Base, NewAlloc, WithBaseField, WithUserSignals},
     prelude::{Gd, GodotClass, IoError, godot_api},
     tools::try_load,
@@ -22,7 +22,9 @@ use crate::{
 };
 
 use super::{
-    loot_option::LootOption, loot_option_listener::LootOptionListener, utils::is_inbounds,
+    loot_option::{LootOption, LootOptionError},
+    loot_option_listener::LootOptionListener,
+    utils::is_inbounds,
 };
 
 const LOOT_OPTION_SCENE: &str = "res://ui/loot_option.tscn";
@@ -39,6 +41,8 @@ pub enum LootMenuError {
     SlotsBorrow,
     #[error("Error casting Gd<Node> to LootOption")]
     OptionCast,
+    #[error("Error setting item on loot option")]
+    SetItem(#[from] LootOptionError),
 }
 
 #[derive(Debug, GodotClass)]
@@ -130,7 +134,9 @@ impl LootMenu {
         loot_option.signals().option_clicked().connect_obj(
             &listener,
             |this: &mut LootOptionListener| {
-                this.handle_loot_option_click();
+                let _ = this
+                    .handle_loot_option_click()
+                    .map_err(|error| godot_error!("{error}"));
             },
         );
     }
@@ -162,7 +168,7 @@ impl LootMenu {
             )?;
         }
 
-        self.add_loot_all_option(loot_slots, menu_option_scene, vbox);
+        self.add_loot_all_option(loot_slots, menu_option_scene, vbox)?;
 
         Ok(())
     }
@@ -186,7 +192,10 @@ impl LootMenu {
         let slot_borrow = slot_ref.try_borrow_mut();
         match slot_borrow {
             Ok(ref slot) => {
-                loot_option.bind_mut().set_item(slot);
+                loot_option
+                    .bind_mut()
+                    .set_item(slot)
+                    .map_err(LootMenuError::SetItem)?;
                 drop(slot_borrow);
 
                 Ok(())
@@ -216,18 +225,20 @@ impl LootMenu {
         loot_slots: Ref<'_, Vec<Rc<RefCell<InventorySlot>>>>,
         menu_option_scene: Gd<PackedScene>,
         mut vbox: Gd<VBoxContainer>,
-    ) {
+    ) -> Result<(), LootMenuError> {
         if loot_slots.len() > 1 {
             // Add Loot All option
             let option_node = menu_option_scene.instantiate().unwrap();
             let loot_option = option_node.try_cast::<LootOption>();
             if let Ok(mut loot_option) = loot_option {
                 let loot_all = InventorySlot::new(Some(Box::new(LootAll::new())), 1);
-                loot_option.bind_mut().set_item(&loot_all);
-                loot_option.bind_mut().enable_amount(false);
+                loot_option.bind_mut().set_item(&loot_all)?;
+                loot_option.bind_mut().enable_amount(false)?;
                 vbox.add_child(&loot_option);
             }
         }
+
+        Ok(())
     }
 
     pub fn set_options(

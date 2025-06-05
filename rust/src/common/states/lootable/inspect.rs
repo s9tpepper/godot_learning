@@ -5,16 +5,17 @@ use std::{
 
 use godot::{
     builtin::Vector2,
-    classes::{INode3D, InputEvent, InputEventMouseButton, Node3D},
+    classes::{InputEvent, InputEventMouseButton},
     global::{godot_error, godot_print},
-    obj::{Base, Gd, NewAlloc},
-    prelude::{GodotClass, godot_api},
+    obj::{Gd, NewAlloc},
 };
 use thiserror::Error;
 
 use crate::common::{states::State, ui::loot_menu::LootMenu};
 
-use super::{LootContext, LootMachineContext, loot_state::LootState};
+use super::{
+    LootContext, LootMachineContext, inspect_listener::InspectListener, loot_state::LootState,
+};
 
 #[derive(Error, Debug)]
 pub enum InspectError<'a> {
@@ -32,6 +33,14 @@ pub enum InspectError<'a> {
     ColliderInstanceInvalid,
     #[error("There was an error adding options to loot menu")]
     LootMenu,
+    #[error("Borrow error borrowing state active flag")]
+    ActiveFlag,
+    #[error("Borrow error borrowing next_state pointer")]
+    NextState,
+    #[error("Borrow error borrowing mouse_hovering flag")]
+    HoveringFlag,
+    #[error("Borrow error borrowing trigger_menu flag")]
+    TriggerMenu,
 }
 
 #[derive(Debug)]
@@ -52,51 +61,9 @@ impl Inspect {
         menu.signals()
             .option_clicked()
             .connect_obj(&listener, |this: &mut InspectListener| {
-                godot_print!("InspectState:: option_clicked() signal()");
-
-                match this.active.try_borrow_mut() {
-                    Ok(mut active) => {
-                        *active = false;
-                    }
-                    Err(_) => {
-                        godot_error!(
-                            "[InspectState]: Error borrowing active in option_clicked() signal"
-                        );
-                    }
-                }
-
-                let menu_borrow = this.menu.try_borrow_mut();
-                match menu_borrow {
-                    Ok(mut loot_menu_opt) => match &mut *loot_menu_opt {
-                        Some(loot_menu) => {
-                            let next_state_borrow = this.next_state.try_borrow_mut();
-                            match next_state_borrow {
-                                Ok(mut next_state) => {
-                                    godot_print!("loot menu: {:?}", loot_menu);
-
-                                    if loot_menu.bind().len() == 1 {
-                                        godot_print!("InspectState:: 1 item left in this menu");
-                                        *next_state = Some(LootState::Destroy);
-                                    } else {
-                                        *next_state = Some(LootState::Idle);
-                                        godot_print!("InspectState:: next_state = Idle");
-                                    }
-
-                                    *loot_menu_opt = None;
-                                }
-
-                                Err(_) => godot_error!(
-                                    "Error borrowing next_state in Inspect after option clicked",
-                                ),
-                            }
-                        }
-                        None => godot_error!("LootMenu is None, this should not happen"),
-                    },
-
-                    Err(_) => {
-                        godot_error!("Error borrowing menu after item looted",)
-                    }
-                }
+                let _ = this
+                    .option_clicked()
+                    .map_err(|error| godot_error!("{error}"));
             });
     }
 
@@ -227,19 +194,9 @@ impl Inspect {
                 collision_object.signals().mouse_entered().connect_obj(
                     &listener,
                     |this: &mut InspectListener| {
-                        match this.mouse_hovering.try_borrow_mut() {
-                            Ok(mut hovering) => {
-                                *hovering = true;
-                            },
-                            Err(error) => godot_error!("The mouse_hovering ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
-                        }
-
-                        match this.trigger_menu.try_borrow_mut() {
-                            Ok(mut trigger) => {
-                                *trigger = true;
-                            },
-                            Err(error) => godot_error!("The trigger_menu ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
-                        }
+                        let _ = this
+                            .mouse_entered()
+                            .map_err(|error| godot_error!("{error}"));
                     },
                 );
             }
@@ -258,12 +215,7 @@ impl Inspect {
                 collision_object.signals().mouse_entered().connect_obj(
                     &listener,
                     |this: &mut InspectListener| {
-                        match this.mouse_hovering.try_borrow_mut() {
-                            Ok(mut hovering) => {
-                                *hovering = false;
-                            },
-                            Err(error) => godot_error!("The mouse_hovering ref is already borrowed, can not set mouse hover for inspect menu: {error}"),
-                        }
+                        let _ = this.mouse_exited().map_err(|error| godot_error!("{error}"));
                     },
                 );
             }
@@ -456,26 +408,4 @@ impl State for Inspect {
             godot_error!("{error}");
         }
     }
-}
-
-// Mouse signal listener
-#[derive(GodotClass)]
-#[class(init, base = Node3D)]
-struct InspectListener {
-    pub next_state: Rc<RefCell<Option<LootState>>>,
-    pub active: Rc<RefCell<bool>>,
-    pub mouse_hovering: Rc<RefCell<bool>>,
-    pub trigger_menu: Rc<RefCell<bool>>,
-    pub context: Rc<RefCell<LootContext>>,
-    pub menu: Rc<RefCell<Option<Gd<LootMenu>>>>,
-    base: Base<Node3D>,
-}
-
-#[godot_api]
-impl INode3D for InspectListener {}
-
-#[godot_api]
-impl InspectListener {
-    #[signal]
-    fn toggle_loot_options();
 }

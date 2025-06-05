@@ -14,7 +14,7 @@ use godot::{
 };
 
 use crate::{
-    common::{self, finite_state_machine::FiniteStateMachine, states::State},
+    common::{finite_state_machine::FiniteStateMachine, states::State},
     impl_inode3d_for_fsm,
     player::StateContext,
     states::movement::{idle::Idle, movement_states::MovementStates, walking::Walking},

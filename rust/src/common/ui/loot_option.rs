@@ -9,6 +9,7 @@ use godot::{
     prelude::{GodotClass, godot_api},
     tools::load,
 };
+use thiserror::Error;
 
 use crate::common::inventory::InventorySlot;
 
@@ -32,38 +33,60 @@ pub struct LootOption {
     uuid: String,
 }
 
+#[derive(Debug, Error)]
+pub enum LootOptionError {
+    #[error("Loot option name label is missing")]
+    Name,
+
+    #[error("Loot option count label is missing")]
+    Count,
+
+    #[error("Loot option icon texture rect is missing")]
+    Icon,
+}
+
 #[godot_api]
 impl LootOption {
     #[signal]
     pub fn option_clicked();
 
-    pub fn set_item(&mut self, slot: &InventorySlot) {
+    pub fn set_item(&mut self, slot: &InventorySlot) -> Result<(), LootOptionError> {
         let item = slot.item.as_ref().expect("slots to have an item");
-        self.get_name().unwrap().set_text(&item.get_name());
-        self.get_count().unwrap().set_text(&slot.count.to_string());
 
+        let mut name_label = self.get_name().ok_or(LootOptionError::Name)?;
+        name_label.set_text(&item.get_name());
+
+        let mut count_label = self.get_name().ok_or(LootOptionError::Count)?;
+        count_label.set_text(&slot.count.to_string());
+
+        // TODO: Fix this to get image specifically for loot item
         let texture = load::<Texture2D>("res://images/test_image.jpeg");
         let image = texture.get_image().unwrap();
-
         let mut texture = ImageTexture::create_from_image(&image).unwrap();
         texture.set_size_override(Vector2i { x: 32, y: 32 });
 
-        let mut icon = self.get_icon().unwrap();
+        let mut icon = self.get_icon().ok_or(LootOptionError::Icon)?;
         icon.set_texture(&texture);
         icon.set_size(Vector2::new(32., 32.));
         icon.set_stretch_mode(StretchMode::KEEP_ASPECT);
         icon.set_expand_mode(ExpandMode::IGNORE_SIZE);
 
         self.uuid = item.get_uuid().to_string();
+
+        Ok(())
     }
 
-    pub fn enable_amount(&mut self, enable: bool) {
-        self.get_count().unwrap().set_visible(enable);
+    pub fn enable_amount(&mut self, enable: bool) -> Result<(), LootOptionError> {
+        let mut count_label = self.get_name().ok_or(LootOptionError::Count)?;
+        count_label.set_visible(enable);
+
+        Ok(())
     }
 
-    pub fn get_uuid(&self) -> &str {
-        &self.uuid
-    }
+    // NOTE: No longer used??
+    // pub fn get_uuid(&self) -> &str {
+    //     &self.uuid
+    // }
 }
 
 #[godot_api]

@@ -22,10 +22,10 @@ use crate::{
 
 use super::State;
 
-pub mod chosen;
 pub mod hover;
 pub mod idle;
 pub mod inspect;
+pub mod inspect_listener;
 pub mod loot_state;
 
 pub type LootMachineContext = Rc<RefCell<LootContext>>;

@@ -19,10 +19,14 @@ pub enum LootOptionListenerError {
     SelectedOptionBorrow,
     #[error("Error borrowing loot slots")]
     LootSlotsBorrow,
+    #[error("Error borrowing looted item's slot")]
+    LootSlotBorrow,
     #[error("Loot slots was missing an item")]
     MissingLootItem,
     #[error("Looted item was not found in loot slots, wtf?")]
     MissingLootedIndex,
+    #[error("CollisionObject was None, it should not be missing")]
+    CollisionObjectNone,
 }
 
 #[derive(Debug, GodotClass)]
@@ -51,11 +55,11 @@ impl LootOptionListener {
         let mut slot = self
             .slot
             .try_borrow_mut()
-            .map_err(|_| LootOptionListenerError::InventoryBorrow)?;
+            .map_err(|_| LootOptionListenerError::LootSlotBorrow)?;
 
         inventory
             .add(&mut slot)
-            .map_err(|_| LootOptionListenerError::InventoryBorrow)
+            .map_err(|_| LootOptionListenerError::AddToInventory)
     }
 
     pub fn handle_loot_option_click(&mut self) -> Result<(), LootOptionListenerError> {
@@ -69,23 +73,29 @@ impl LootOptionListener {
                 let slot = self
                     .slot
                     .try_borrow()
-                    .map_err(|_| LootOptionListenerError::InventoryBorrow)?;
+                    .map_err(|_| LootOptionListenerError::LootSlotBorrow)?;
 
                 if slot.item.is_some() {
-                    let item = slot.item.as_ref().unwrap();
+                    let item = slot
+                        .item
+                        .as_ref()
+                        .ok_or(LootOptionListenerError::MissingLootItem)?;
                     let uuid = item.get_uuid().to_string();
 
-                    remove_item_uuid_from_menu(&uuid, self.loot_slots.clone());
+                    remove_item_uuid_from_menu(&uuid, self.loot_slots.clone())?;
                 }
 
                 // Check if all items have been looted
                 let inventory_slots = self
                     .loot_slots
                     .try_borrow()
-                    .map_err(|_| LootOptionListenerError::InventoryBorrow)?;
+                    .map_err(|_| LootOptionListenerError::LootSlotsBorrow)?;
 
                 if inventory_slots.is_empty() {
-                    let collision_obj = self.collision_object.as_mut().unwrap();
+                    let collision_obj = self
+                        .collision_object
+                        .as_mut()
+                        .ok_or(LootOptionListenerError::CollisionObjectNone)?;
 
                     if collision_obj.is_instance_valid() {
                         collision_obj.queue_free();
@@ -117,7 +127,7 @@ fn remove_item_uuid_from_menu(
     for (index, loot_slot) in slots.iter().enumerate() {
         let slot = loot_slot
             .try_borrow()
-            .map_err(|_| LootOptionListenerError::LootSlotsBorrow)?;
+            .map_err(|_| LootOptionListenerError::LootSlotBorrow)?;
 
         let item = slot
             .item

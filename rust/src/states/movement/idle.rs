@@ -1,10 +1,6 @@
 use std::sync::LazyLock;
 
-use godot::{
-    builtin::Vector2,
-    classes::{AnimationPlayer, Input},
-    obj::Gd,
-};
+use godot::{builtin::Vector2, classes::Input, obj::Gd};
 
 use crate::{actions::Actions, common::states::State};
 
@@ -19,10 +15,6 @@ pub struct Idle {
     #[allow(unused)]
     context: Gd<MovementContext>,
     next_state: Option<MovementStates>,
-}
-
-struct IdleNodes {
-    animator: Gd<AnimationPlayer>,
 }
 
 impl State for Idle {

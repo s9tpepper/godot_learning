@@ -2,6 +2,7 @@ use std::{cmp::min, error::Error};
 
 use godot::global::godot_print;
 
+#[allow(unused)]
 #[derive(PartialEq, Eq)]
 pub enum ItemCategory {
     Weapon,
@@ -72,16 +73,7 @@ impl Inventory {
     }
 
     // TODO: Fix unwrap()s and Box dyn Error
-    pub fn add<'a>(&mut self, new_item: &'a mut InventorySlot) -> Result<bool, Box<dyn Error>> {
-        godot_print!("add() - new_item: {new_item:?}");
-        godot_print!("add() - new_item.item: {:?}", new_item.item);
-        if new_item.item.is_some() {
-            let the_item = new_item.item.as_ref().unwrap();
-
-            godot_print!("add() - the_item: {:?}", the_item);
-            godot_print!("add() - the_item.name: {:?}", the_item.get_name());
-        }
-
+    pub fn add(&mut self, new_item: &mut InventorySlot) -> Result<bool, Box<dyn Error>> {
         let item_type = new_item.item.as_ref().expect("item").get_name().clone();
         godot_print!("item_type: {item_type}");
 
