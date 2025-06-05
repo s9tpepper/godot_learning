@@ -43,6 +43,8 @@ pub enum LootMenuError {
     OptionCast,
     #[error("Error setting item on loot option")]
     SetItem(#[from] LootOptionError),
+    #[error("The loot option name label is missing")]
+    NameLabelMissing,
 }
 
 #[derive(Debug, GodotClass)]
@@ -229,13 +231,41 @@ impl LootMenu {
         if loot_slots.len() > 1 {
             // Add Loot All option
             let option_node = menu_option_scene.instantiate().unwrap();
-            let loot_option = option_node.try_cast::<LootOption>();
-            if let Ok(mut loot_option) = loot_option {
-                let loot_all = InventorySlot::new(Some(Box::new(LootAll::new())), 1);
-                loot_option.bind_mut().set_item(&loot_all)?;
-                loot_option.bind_mut().enable_amount(false)?;
-                vbox.add_child(&loot_option);
-            }
+            let mut loot_option = option_node
+                .try_cast::<LootOption>()
+                .map_err(|_| LootMenuError::OptionCast)?;
+
+            let loot_all = InventorySlot::new(Some(Box::new(LootAll::new())), 1);
+            loot_option.bind_mut().set_item(&loot_all)?;
+            loot_option.bind_mut().enable_amount(false)?;
+            vbox.add_child(&loot_option);
+
+            loot_option.signals().option_clicked().connect(move || {
+                let children = vbox.get_children();
+
+                children.iter_shared().for_each(|child| {
+                    let loot_option_cast = child
+                        .try_cast::<LootOption>()
+                        .map_err(|_| LootMenuError::OptionCast);
+
+                    match loot_option_cast {
+                        Ok(mut loot_option) => {
+                            let name_label = loot_option
+                                .bind()
+                                .get_name()
+                                .ok_or(LootMenuError::NameLabelMissing);
+
+                            if let Ok(name) = name_label {
+                                if name.get_text().to_string() != LootAll::name() {
+                                    loot_option.signals().option_clicked().emit();
+                                }
+                            }
+                        }
+
+                        Err(error) => godot_error!("{error}"),
+                    }
+                });
+            });
         }
 
         Ok(())

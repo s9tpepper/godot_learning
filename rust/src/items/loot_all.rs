@@ -11,6 +11,10 @@ impl LootAll {
             uuid: "1".to_string(),
         }
     }
+
+    pub fn name() -> String {
+        "Loot All".into()
+    }
 }
 
 impl InventoryItem for LootAll {
