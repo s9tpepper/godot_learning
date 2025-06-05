@@ -23,6 +23,7 @@ use crate::{
 use super::State;
 
 pub mod hover;
+pub mod hover_listener;
 pub mod idle;
 pub mod inspect;
 pub mod inspect_listener;

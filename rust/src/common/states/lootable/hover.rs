@@ -1,15 +1,30 @@
 use std::{cell::RefCell, rc::Rc};
 
 use godot::{
-    classes::{INode3D, InputEvent, InputEventMouseButton, Node3D},
-    global::godot_print,
-    obj::{Base, Gd, NewAlloc},
-    prelude::{GodotClass, godot_api},
+    classes::InputEvent,
+    global::godot_error,
+    obj::{Gd, NewAlloc},
 };
+use thiserror::Error;
 
 use crate::common::states::State;
 
-use super::{LootMachineContext, loot_state::LootState};
+use super::{LootMachineContext, hover_listener::HoverListener, loot_state::LootState};
+
+#[derive(Debug, Error)]
+pub enum LootMenuHoverStateError {
+    #[error("The next_state could not be borrowed")]
+    NextState,
+
+    #[error("The active flag could not be borrowed")]
+    ActiveFlag,
+
+    #[error("The context could not be borrowed")]
+    Context,
+
+    #[error("The collision object was None, it should not be missing")]
+    CollisionObjectMissing,
+}
 
 #[derive(Debug)]
 pub struct Hover {
@@ -17,6 +32,30 @@ pub struct Hover {
     next_state: Rc<RefCell<Option<LootState>>>,
     active: Rc<RefCell<bool>>,
     connected: bool,
+}
+
+impl Hover {
+    fn set_active(&mut self, is_active: bool) {
+        let borrow = self
+            .active
+            .try_borrow_mut()
+            .map_err(|_| LootMenuHoverStateError::ActiveFlag);
+
+        match borrow {
+            Ok(mut active) => {
+                *active = is_active;
+            }
+            Err(error) => godot_error!("{error}"),
+        }
+    }
+
+    fn get_listener(&self) -> Gd<HoverListener> {
+        let mut listener = HoverListener::new_alloc();
+        listener.bind_mut().next_state = self.next_state.clone();
+        listener.bind_mut().active = self.active.clone();
+
+        listener
+    }
 }
 
 impl State for Hover {
@@ -43,131 +82,83 @@ impl State for Hover {
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {
-        let mut borrow = self.next_state.try_borrow_mut();
-        if let Ok(next_state) = &mut borrow {
-            **next_state = Some(state);
+        let next_state_borrow = self
+            .next_state
+            .try_borrow_mut()
+            .map_err(|_| LootMenuHoverStateError::NextState);
+
+        match next_state_borrow {
+            Ok(mut next_state) => {
+                *next_state = Some(state);
+            }
+            Err(error) => godot_error!("{error}"),
         }
     }
 
     fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
-        self.next_state.try_borrow().unwrap().clone()
+        let next_state_borrow = self
+            .next_state
+            .try_borrow_mut()
+            .map_err(|_| LootMenuHoverStateError::NextState);
+
+        match next_state_borrow {
+            Ok(next_state) => next_state.clone(),
+            Err(error) => {
+                godot_error!("{error}");
+                None
+            }
+        }
     }
 
     fn exit(&mut self) {
         self.set_next_state(LootState::Hover);
-
-        let mut borrow = self.active.try_borrow_mut();
-        if let Ok(active) = &mut borrow {
-            **active = false;
-
-            godot_print!("disabled hover state");
-        }
+        self.set_active(false);
     }
 
-    // TODO: Get rid of all of these unwraps everywhere
     fn enter(&mut self) {
-        {
-            let mut borrow = self.active.try_borrow_mut();
-            if let Ok(active) = &mut borrow {
-                **active = true;
-            }
-
-            godot_print!("enabled hover state");
-        }
+        self.set_active(true);
 
         if self.connected {
             return;
         }
 
-        let context = self.context.clone();
-        if let Ok(mut context) = context.try_borrow_mut() {
-            if let Some(ref mut collision_object) = context.collision_object {
-                let mut click_listener = HoverListener::new_alloc();
+        let context_result = self
+            .context
+            .try_borrow_mut()
+            .map_err(|_| LootMenuHoverStateError::Context);
 
-                click_listener.bind_mut().next_state = self.next_state.clone();
-                click_listener.bind_mut().active = self.active.clone();
+        match context_result {
+            Ok(mut context) => {
+                let collision_object_result = context
+                    .collision_object
+                    .as_mut()
+                    .ok_or(LootMenuHoverStateError::CollisionObjectMissing);
 
-                collision_object.signals().input_event().connect_obj(
-                    &click_listener,
-                    |this: &mut HoverListener, _, event: Gd<InputEvent>, _, _, _| {
-                        // NOTE: Using this active bool to stop the state changes
-                        // because godot-rust does not yet have a disconnect()
-                        // function for the input_event() signal implemented
-                        let active = {
-                            let mut borrow = this.active.try_borrow_mut();
-                            if let Ok(active) = &mut borrow {
-                                **active
-                            } else {
-                                false
-                            }
-                        };
+                match collision_object_result {
+                    Ok(collision_object) => {
+                        collision_object.signals().input_event().connect_obj(
+                            &self.get_listener(),
+                            |this: &mut HoverListener, _, event: Gd<InputEvent>, _, _, _| {
+                                let _ = this
+                                    .input_event(event)
+                                    .map_err(|error| godot_error!("{error}"));
+                            },
+                        );
 
-                        if !active {
-                            return;
-                        }
+                        collision_object.signals().mouse_exited().connect_obj(
+                            &self.get_listener(),
+                            |this: &mut HoverListener| {
+                                let _ =
+                                    this.mouse_exited().map_err(|error| godot_error!("{error}"));
+                            },
+                        );
 
-                        let event = event.try_cast::<InputEventMouseButton>();
-                        if let Ok(event) = event {
-                            if event.is_released() {
-                                let mut borrow = this.next_state.try_borrow_mut();
-                                if let Ok(next_state) = &mut borrow {
-                                    **next_state = Some(LootState::Inspect);
-                                }
-                            }
-                        }
-                    },
-                );
-
-                let mut leave_listener = HoverListener::new_alloc();
-
-                leave_listener.bind_mut().next_state = self.next_state.clone();
-                leave_listener.bind_mut().active = self.active.clone();
-
-                collision_object.signals().mouse_exited().connect_obj(
-                    &leave_listener,
-                    |this: &mut HoverListener| {
-                        let active = {
-                            let mut borrow = this.active.try_borrow_mut();
-                            if let Ok(active) = &mut borrow {
-                                **active
-                            } else {
-                                false
-                            }
-                        };
-
-                        if !active {
-                            return;
-                        }
-
-                        let mut borrow = this.next_state.try_borrow_mut();
-                        if let Ok(next_state) = &mut borrow {
-                            **next_state = Some(LootState::Idle);
-                        }
-                    },
-                );
-
-                self.connected = true;
+                        self.connected = true;
+                    }
+                    Err(error) => godot_error!("{error}"),
+                }
             }
-        } else {
-            godot_print!("Could not borrow context in LootState::Hover");
+            Err(error) => godot_error!("{error}"),
         }
     }
-}
-
-// Mouse signal listener
-#[derive(GodotClass)]
-#[class(init, base = Node3D)]
-struct HoverListener {
-    pub next_state: Rc<RefCell<Option<LootState>>>,
-    pub active: Rc<RefCell<bool>>,
-    base: Base<Node3D>,
-}
-
-#[godot_api]
-impl INode3D for HoverListener {}
-
-#[godot_api]
-impl HoverListener {
-    #[signal]
-    fn dummy();
 }
