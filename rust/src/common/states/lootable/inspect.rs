@@ -286,14 +286,30 @@ impl State for Inspect {
     }
 
     fn set_next_state(&mut self, state: Self::StatesEnum) {
-        let mut borrow = self.next_state.try_borrow_mut();
-        if let Ok(next_state) = &mut borrow {
-            **next_state = Some(state);
+        let borrow = self
+            .next_state
+            .try_borrow_mut()
+            .map_err(|_| InspectError::NextState);
+
+        match borrow {
+            Ok(mut next_state) => *next_state = Some(state),
+            Err(error) => godot_error!("{error}"),
         }
     }
 
     fn get_next_state(&mut self) -> Option<Self::StatesEnum> {
-        self.next_state.try_borrow().unwrap().clone()
+        let borrow = self
+            .next_state
+            .try_borrow_mut()
+            .map_err(|_| InspectError::NextState);
+
+        match borrow {
+            Ok(next_state) => next_state.clone(),
+            Err(error) => {
+                godot_error!("{error}");
+                None
+            }
+        }
     }
 
     fn exit(&mut self) {
@@ -334,7 +350,6 @@ impl State for Inspect {
         }
 
         let mouse_button_event = event.try_cast::<InputEventMouseButton>();
-
         if mouse_button_event.is_err() {
             return;
         }
@@ -343,17 +358,21 @@ impl State for Inspect {
         let mouse_hovering_refcell = self.mouse_hovering.clone();
         let menu_refcell = self.menu.clone();
 
-        match mouse_hovering_refcell.try_borrow() {
-            Ok(mouse_hovering) => match menu_refcell.try_borrow_mut() {
-                Ok(menu) => self.check_out_of_bounds_click(mouse_event, mouse_hovering, menu),
-                Err(borrow_mut_error) => {
-                    godot_error!("Could not borrow mut the menu: {borrow_mut_error}")
-                }
-            },
+        let mouse_hovering_borrow = mouse_hovering_refcell
+            .try_borrow()
+            .map_err(|_| InspectError::HoveringFlag);
 
-            Err(borrow_error) => {
-                godot_error!("Could not borrow mouse_hovering reference: {borrow_error}")
+        match mouse_hovering_borrow {
+            Ok(mouse_hovering) => {
+                let menu_borrow = menu_refcell
+                    .try_borrow_mut()
+                    .map_err(|_| InspectError::LootMenu);
+                match menu_borrow {
+                    Ok(menu) => self.check_out_of_bounds_click(mouse_event, mouse_hovering, menu),
+                    Err(error) => godot_error!("{error}"),
+                }
             }
+            Err(error) => godot_error!("{error}"),
         }
     }
 
