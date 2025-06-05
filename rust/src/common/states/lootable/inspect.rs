@@ -381,17 +381,17 @@ impl State for Inspect {
             return;
         }
 
-        let is_none = {
+        let is_some = {
             let menu = self.menu.clone();
             let menu_borrow = menu.try_borrow();
             if let Ok(menu) = menu_borrow {
-                menu.is_none()
+                menu.is_some()
             } else {
-                false
+                true
             }
         };
 
-        if !is_none {
+        if !is_some {
             return;
         }
 
@@ -399,17 +399,15 @@ impl State for Inspect {
         let trigger_borrow = trigger_menu.try_borrow_mut();
         match trigger_borrow {
             Ok(mut trigger) => {
-                if *trigger && is_none {
+                if *trigger && !is_some {
                     *trigger = false;
-
-                    godot_print!("Try to create menu... ");
 
                     if let Err(error) = self.create_menu() {
                         godot_error!("{error}");
                     }
                 } else {
                     godot_error!(
-                        "Not ready to create menu: trigger: {trigger:?}, is_none: {is_none:?}"
+                        "Not ready to create menu: trigger: {trigger:?}, is_some: {is_some:?}"
                     );
                 }
             }
