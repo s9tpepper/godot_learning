@@ -56,7 +56,7 @@ impl LootOption {
         let mut name_label = self.get_name().ok_or(LootOptionError::Name)?;
         name_label.set_text(&item.get_name());
 
-        let mut count_label = self.get_name().ok_or(LootOptionError::Count)?;
+        let mut count_label = self.get_count().ok_or(LootOptionError::Count)?;
         count_label.set_text(&slot.count.to_string());
 
         // TODO: Fix this to get image specifically for loot item
@@ -77,7 +77,7 @@ impl LootOption {
     }
 
     pub fn enable_amount(&mut self, enable: bool) -> Result<(), LootOptionError> {
-        let mut count_label = self.get_name().ok_or(LootOptionError::Count)?;
+        let mut count_label = self.get_count().ok_or(LootOptionError::Count)?;
         count_label.set_visible(enable);
 
         Ok(())
