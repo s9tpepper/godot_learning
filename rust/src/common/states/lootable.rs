@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use godot::{
     classes::{CollisionObject3D, Node3D},
-    global::godot_print,
+    global::godot_error,
     obj::{Base, Gd, WithBaseField},
     prelude::{GodotClass, godot_api},
 };
@@ -11,6 +11,7 @@ use hover::Hover;
 use idle::Idle;
 use inspect::Inspect;
 use loot_state::LootState;
+use thiserror::Error;
 
 use crate::{
     common::{
@@ -93,6 +94,12 @@ pub struct LootMachine {
 
 impl_inode3d_for_fsm!(LootMachine);
 
+#[derive(Debug, Error)]
+pub enum LootMachineError {
+    #[error("The context could not be borrowed")]
+    Context,
+}
+
 impl LootMachine {
     pub fn start(&mut self, context: LootMachineContext) {
         self.context = context;
@@ -109,12 +116,16 @@ impl LootMachine {
         });
         self.states.clear();
 
-        {
-            let context_borrow = self.context.try_borrow_mut();
-            if let Ok(mut context) = context_borrow {
-                context.destroy();
-            }
+        let mut context_borrow = self
+            .context
+            .try_borrow_mut()
+            .map_err(|_| LootMachineError::Context);
+
+        match context_borrow {
+            Ok(ref mut context) => context.destroy(),
+            Err(ref error) => godot_error!("{error}"),
         }
+        drop(context_borrow);
 
         let _ = self.context.take();
 
@@ -150,8 +161,6 @@ impl FiniteStateMachine for LootMachine {
         let inspect_state = Inspect::new(context);
         self.register_state(Box::new(inspect_state), &mut states);
 
-        godot_print!("[LootMachine] Registered Idle state");
-
         states
     }
 
@@ -160,8 +169,6 @@ impl FiniteStateMachine for LootMachine {
     }
 
     fn set_current_state(&mut self, state: Self::StatesEnum) {
-        godot_print!("LootMachine::set_current_state: {state:?}");
-
         if state == LootState::Destroy {
             return self.destroy();
         }
