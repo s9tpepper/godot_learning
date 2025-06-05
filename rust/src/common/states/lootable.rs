@@ -25,6 +25,7 @@ use super::State;
 pub mod hover;
 pub mod hover_listener;
 pub mod idle;
+pub mod idle_listener;
 pub mod inspect;
 pub mod inspect_listener;
 pub mod loot_state;
