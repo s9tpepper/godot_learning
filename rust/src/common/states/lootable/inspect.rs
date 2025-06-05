@@ -30,6 +30,8 @@ pub enum InspectError<'a> {
     MenuShouldNotBeNone,
     #[error("The collider instance has been freed and is no longer valid")]
     ColliderInstanceInvalid,
+    #[error("There was an error adding options to loot menu")]
+    LootMenu,
 }
 
 #[derive(Debug)]
@@ -50,9 +52,50 @@ impl Inspect {
         menu.signals()
             .option_clicked()
             .connect_obj(&listener, |this: &mut InspectListener| {
-                let next_state_borrow = this.next_state.try_borrow_mut();
-                if let Ok(mut next_state) = next_state_borrow {
-                    *next_state = Some(LootState::Destroy);
+                godot_print!("InspectState:: option_clicked() signal()");
+
+                match this.active.try_borrow_mut() {
+                    Ok(mut active) => {
+                        *active = false;
+                    }
+                    Err(_) => {
+                        godot_error!(
+                            "[InspectState]: Error borrowing active in option_clicked() signal"
+                        );
+                    }
+                }
+
+                let menu_borrow = this.menu.try_borrow_mut();
+                match menu_borrow {
+                    Ok(mut loot_menu_opt) => match &mut *loot_menu_opt {
+                        Some(loot_menu) => {
+                            let next_state_borrow = this.next_state.try_borrow_mut();
+                            match next_state_borrow {
+                                Ok(mut next_state) => {
+                                    godot_print!("loot menu: {:?}", loot_menu);
+
+                                    if loot_menu.bind().len() == 1 {
+                                        godot_print!("InspectState:: 1 item left in this menu");
+                                        *next_state = Some(LootState::Destroy);
+                                    } else {
+                                        *next_state = Some(LootState::Idle);
+                                        godot_print!("InspectState:: next_state = Idle");
+                                    }
+
+                                    *loot_menu_opt = None;
+                                }
+
+                                Err(_) => godot_error!(
+                                    "Error borrowing next_state in Inspect after option clicked",
+                                ),
+                            }
+                        }
+                        None => godot_error!("LootMenu is None, this should not happen"),
+                    },
+
+                    Err(_) => {
+                        godot_error!("Error borrowing menu after item looted",)
+                    }
                 }
             });
     }
@@ -92,7 +135,9 @@ impl Inspect {
         menu.set_position(Vector2::new(-10000., -10000.));
 
         menu.bind_mut()
-            .set_options(slots, inventory, collider.clone());
+            .set_options(slots, inventory, collider.clone())
+            .map_err(|_| InspectError::LootMenu)?;
+
         menu.bind_mut().mouse_hovering = self.mouse_hovering.clone();
 
         collider.add_sibling(&menu);
@@ -168,8 +213,9 @@ impl Inspect {
         match trigger_borrow {
             Ok(mut trigger_ref) => {
                 *trigger_ref = trigger;
+                godot_print!("Updated Inspect.rs trigger: {trigger:?}");
             }
-            Err(error) => godot_error!("{error}"),
+            Err(error) => godot_error!("Unable to set trigger to: {trigger:?}, Error: {error:?}"),
         }
     }
 
@@ -246,6 +292,15 @@ impl Inspect {
             self.set_next_state(LootState::Idle);
         }
     }
+
+    fn is_active(&self) -> bool {
+        let active_refcell = self.active.clone();
+
+        match active_refcell.try_borrow() {
+            Ok(active) => *active,
+            Err(_) => false,
+        }
+    }
 }
 
 impl State for Inspect {
@@ -302,16 +357,16 @@ impl State for Inspect {
     }
 
     fn enter(&mut self) {
+        godot_print!("Inspect:: enter()");
+
         self.set_active();
+        self.set_trigger(true);
 
         if self.connected {
             return;
         }
 
-        self.set_trigger(true);
-
         let context_refcell = self.context.clone();
-
         match context_refcell.try_borrow_mut() {
             Ok(mut ctx) => {
                 self.add_mouse_entered_listener(&mut ctx);
@@ -322,6 +377,10 @@ impl State for Inspect {
     }
 
     fn input(&mut self, event: Gd<InputEvent>) {
+        if !self.is_active() {
+            return;
+        }
+
         let mouse_button_event = event.try_cast::<InputEventMouseButton>();
 
         if mouse_button_event.is_err() {
@@ -347,7 +406,7 @@ impl State for Inspect {
     }
 
     fn process(&mut self, _delta: f32) {
-        if self.destroyed {
+        if !self.is_active() || self.destroyed {
             return;
         }
 
@@ -361,20 +420,38 @@ impl State for Inspect {
             }
         };
 
+        if !is_none {
+            return;
+        }
+
         let trigger_menu = self.trigger_menu.clone();
         let trigger_borrow = trigger_menu.try_borrow_mut();
-        if let Ok(mut trigger) = trigger_borrow {
-            if *trigger && is_none {
-                *trigger = false;
+        match trigger_borrow {
+            Ok(mut trigger) => {
+                if *trigger && is_none {
+                    *trigger = false;
 
-                if let Err(error) = self.create_menu() {
-                    godot_error!("{error}");
+                    godot_print!("Try to create menu... ");
+
+                    if let Err(error) = self.create_menu() {
+                        godot_error!("{error}");
+                    }
+                } else {
+                    godot_error!(
+                        "Not ready to create menu: trigger: {trigger:?}, is_none: {is_none:?}"
+                    );
                 }
             }
+
+            Err(_) => godot_error!("Could not borrow trigger to check for menu creation"),
         }
     }
 
     fn physics_process(&mut self, _delta: f32) {
+        if !self.is_active() {
+            return;
+        }
+
         if let Err(error) = self.update_menu_position() {
             godot_error!("{error}");
         }

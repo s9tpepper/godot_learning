@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use godot::{
     builtin::{Vector2, Vector2i},
     classes::{
@@ -7,7 +5,7 @@ use godot::{
         Texture2D, TextureRect,
         texture_rect::{ExpandMode, StretchMode},
     },
-    obj::{Base, Gd, InstanceId, WithBaseField, WithUserSignals},
+    obj::{Base, Gd, WithBaseField, WithUserSignals},
     prelude::{GodotClass, godot_api},
     tools::load,
 };
@@ -30,6 +28,8 @@ pub struct LootOption {
 
     #[export]
     count: Option<Gd<Label>>,
+
+    uuid: String,
 }
 
 #[godot_api]
@@ -50,14 +50,19 @@ impl LootOption {
 
         let mut icon = self.get_icon().unwrap();
         icon.set_texture(&texture);
-
         icon.set_size(Vector2::new(32., 32.));
         icon.set_stretch_mode(StretchMode::KEEP_ASPECT);
         icon.set_expand_mode(ExpandMode::IGNORE_SIZE);
+
+        self.uuid = item.get_uuid().to_string();
     }
 
     pub fn enable_amount(&mut self, enable: bool) {
         self.get_count().unwrap().set_visible(enable);
+    }
+
+    pub fn get_uuid(&self) -> &str {
+        &self.uuid
     }
 }
 

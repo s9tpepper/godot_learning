@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::{cmp::min, error::Error};
 
 use godot::global::godot_print;
 
@@ -71,7 +71,8 @@ impl Inventory {
         Inventory { max_slots, slots }
     }
 
-    pub fn add<'a>(&mut self, new_item: &'a mut InventorySlot) -> Option<&'a mut InventorySlot> {
+    // TODO: Fix unwrap()s and Box dyn Error
+    pub fn add<'a>(&mut self, new_item: &'a mut InventorySlot) -> Result<bool, Box<dyn Error>> {
         godot_print!("add() - new_item: {new_item:?}");
         godot_print!("add() - new_item.item: {:?}", new_item.item);
         if new_item.item.is_some() {
@@ -105,17 +106,14 @@ impl Inventory {
         }
 
         if new_item.count == 0 {
-            return None;
+            return Ok(true);
         }
-
-        godot_print!("self.slots: {:?}", self.slots);
 
         let mut empty_item_slots: Vec<&mut InventorySlot> = self
             .slots
             .iter_mut()
             .filter(|slot| slot.item.is_none())
             .collect();
-        godot_print!("empty slots: {empty_item_slots:?}");
 
         for empty_slot in empty_item_slots.iter_mut() {
             godot_print!("Filling an empty slot");
@@ -134,10 +132,10 @@ impl Inventory {
         }
 
         if new_item.count > 0 {
-            return Some(new_item);
+            return Ok(false);
         }
 
-        None
+        Ok(true)
     }
 
     // TODO: Implement remove for when you destroy or use an item
@@ -151,4 +149,5 @@ pub trait InventoryItem: std::fmt::Debug {
     // TODO: Fix this to be what it should be to retrieve a texture
     fn get_icon(&self) -> String;
     fn get_boxed(&self) -> Box<dyn InventoryItem>;
+    fn get_uuid(&self) -> &str;
 }

@@ -1,11 +1,15 @@
 use crate::common::inventory::{InventoryItem, ItemCategory};
 
 #[derive(Debug)]
-pub struct LootAll {}
+pub struct LootAll {
+    uuid: String,
+}
 
 impl LootAll {
     pub fn new() -> Self {
-        LootAll {}
+        LootAll {
+            uuid: "1".to_string(),
+        }
     }
 }
 
@@ -27,6 +31,12 @@ impl InventoryItem for LootAll {
     }
 
     fn get_boxed(&self) -> Box<dyn InventoryItem> {
-        Box::new(LootAll {})
+        Box::new(LootAll {
+            uuid: self.uuid.clone(),
+        })
+    }
+
+    fn get_uuid(&self) -> &str {
+        &self.uuid
     }
 }

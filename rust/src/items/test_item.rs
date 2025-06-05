@@ -1,13 +1,18 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::common::inventory::{InventoryItem, ItemCategory};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TestItem {}
+pub struct TestItem {
+    uuid: String,
+}
 
 impl TestItem {
     pub fn new() -> Self {
-        TestItem {}
+        TestItem {
+            uuid: Uuid::new_v4().to_string(),
+        }
     }
 }
 
@@ -29,6 +34,12 @@ impl InventoryItem for TestItem {
     }
 
     fn get_boxed(&self) -> Box<dyn InventoryItem> {
-        Box::new(TestItem {})
+        Box::new(TestItem {
+            uuid: self.uuid.clone(),
+        })
+    }
+
+    fn get_uuid(&self) -> &str {
+        &self.uuid
     }
 }
