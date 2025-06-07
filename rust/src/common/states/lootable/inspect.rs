@@ -118,6 +118,10 @@ impl Inspect {
     }
 
     fn update_menu_position(&mut self) -> Result<(), InspectError> {
+        if !self.is_active() {
+            return Ok(());
+        }
+
         let mut menu_option = self
             .menu
             .try_borrow_mut()
@@ -132,10 +136,17 @@ impl Inspect {
             .try_borrow_mut()
             .map_err(|_| InspectError::AlreadyBorrowed("Context"))?;
 
-        let collider = context
-            .collision_object
-            .clone()
-            .ok_or(InspectError::CollisionObjectMissing)?;
+        let collider = match &context.collision_object {
+            Some(collision_object) => {
+                if collision_object.is_instance_valid() {
+                    collision_object
+                } else {
+                    return Ok(());
+                }
+            }
+
+            None => return Ok(()),
+        };
 
         let viewport = collider
             .get_viewport()
